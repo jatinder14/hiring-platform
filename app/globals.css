@@ -1,22 +1,65 @@
 *{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
 html,body{height:100%}
 body{
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   background:#05070c;
   color:#fff;
   overflow-x:hidden;
+  position: relative;
+}
+/* Subtle motion from first paint (before any JS) */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  z-index:-1;
+  background:
+    radial-gradient(55% 45% at 50% 28%, rgba(0,200,180,0.12), transparent 48%),
+    radial-gradient(45% 35% at 72% 22%, rgba(80,120,255,0.1), transparent 42%);
+  animation: aurora-fallback 8s ease-in-out infinite;
+  pointer-events:none;
 }
 
-/* AURORA BG */
+.skip-link{
+  position:fixed;
+  top:-100px;
+  left:16px;
+  z-index:9999;
+  padding:12px 18px;
+  background:#fff;
+  color:#05070c;
+  font-weight:800;
+  border-radius:12px;
+  text-decoration:none;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  transition: top .25s ease;
+}
+.skip-link:focus{
+  top:20px;
+  outline:3px solid rgba(0,255,230,0.8);
+  outline-offset:4px;
+}
+
+/* Aurora canvas: animated fallback so something moves from first paint until WebGL runs */
 #gl{
   position:fixed; inset:0;
   width:100vw; height:100vh;
   z-index:0;
   pointer-events:none;
+  background:
+    radial-gradient(60% 50% at 50% 30%, rgba(0,180,160,0.15), transparent 50%),
+    radial-gradient(50% 40% at 70% 25%, rgba(100,140,255,0.12), transparent 45%),
+    #05070c;
+  animation: aurora-fallback 8s ease-in-out infinite;
+}
+@keyframes aurora-fallback {
+  0%, 100% { opacity: 1; filter: hue-rotate(0deg) brightness(1); }
+  25% { filter: hue-rotate(5deg) brightness(1.05); }
+  50% { opacity: 0.95; filter: hue-rotate(-3deg) brightness(1.02); }
+  75% { filter: hue-rotate(4deg) brightness(1.04); }
 }
 main{position:relative; z-index:1;}
 
-/* NAV */
 .hero-nav{
   position:fixed; top:18px; left:0; right:0;
   z-index:100;
@@ -77,6 +120,7 @@ main{position:relative; z-index:1;}
   transition: transform .2s ease, background .2s ease, color .2s ease;
 }
 .hn-links a:hover{ color:#fff; background: rgba(255,255,255,0.06); transform: translateY(-1px); }
+.hn-links a:focus-visible{ outline:2px solid rgba(0,255,230,0.9); outline-offset:3px; border-radius:14px; }
 
 .hn-actions{display:flex;gap:10px;align-items:center;white-space:nowrap}
 .hn-btn{
@@ -91,6 +135,7 @@ main{position:relative; z-index:1;}
   box-shadow: 0 14px 40px rgba(255,255,255,0.12);
 }
 .hn-btn:hover{ transform: translateY(-1px); box-shadow: 0 18px 55px rgba(255,255,255,0.16); }
+.hn-btn:focus-visible{ outline:2px solid rgba(0,255,230,0.9); outline-offset:3px; }
 .hn-btn.ghost{
   background: rgba(255,255,255,0.06);
   color:#fff;
@@ -107,6 +152,7 @@ main{position:relative; z-index:1;}
   background: rgba(255,255,255,0.06);
   border:1px solid rgba(255,255,255,0.14);
 }
+.hn-burger:focus-visible{ outline:2px solid rgba(0,255,230,0.9); outline-offset:3px; border-radius:16px; }
 .hn-burger span{
   display:block; width:18px;height:2px; margin:4px 0;
   border-radius:99px; background: rgba(255,255,255,0.88);
@@ -142,7 +188,6 @@ body.hero-out .hero-nav{opacity:0; transform: translateY(-10px); filter: blur(2p
   .hn-burger{display:block}
 }
 
-/* HERO */
 .hero{
   position:relative;
   min-height:100vh;
@@ -175,7 +220,6 @@ body.hero-out .hero{opacity:0; transform: translateY(-50px) scale(0.98); filter:
 .hero h1{font-size:clamp(44px, 6.5vw, 92px); font-weight:800; letter-spacing:-0.02em;}
 .hero p{font-size:clamp(16px, 2vw, 22px); color:rgba(255,255,255,0.72); line-height:1.6;}
 
-/* TREE layer */
 .tree-layer{
   position:fixed; left:0; right:0; bottom:0;
   width:100vw; height:100vh;
@@ -198,7 +242,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
 }
 #treeFx,#groundFx{position:absolute; inset:0; width:100%; height:100%; display:block; z-index:2;}
 
-/* STORY */
 .story{position:relative; padding:90px 16px 0; min-height:260vh; z-index:30;}
 .messages{max-width:1100px; margin:0 auto; padding-bottom:60vh; position:relative; z-index:30;}
 .msg{width:min(920px, 92vw); margin:26px auto; position:relative; z-index:30;}
@@ -216,9 +259,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
 
 .after{padding:120px 16px 140px; max-width:1100px; margin:0 auto; position:relative; z-index:30;}
 
-/* =========================
-   ✅ Domains block (after messages)
-========================= */
 .domains{
   width:min(1100px, 92vw);
   margin:34px auto;
@@ -250,7 +290,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
   to{ transform: translate3d(10px,10px,0) scale(1.08); opacity:1; }
 }
 
-/* stats pills (same vibe) */
 .stats-row{
   position:relative;
   z-index:2;
@@ -273,7 +312,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
 .dot{width:10px;height:10px;border-radius:999px;background:#fff;box-shadow:0 0 20px rgba(255,255,255,0.25)}
 @media (max-width: 980px){ .stats-row{ grid-template-columns: 1fr; } }
 
-/* title + arrows */
 .dom-top{
   position:relative;
   z-index:2;
@@ -297,7 +335,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
 }
 .dom-arrow:hover{transform: translateY(-2px); border-color: rgba(0,255,230,0.35); background: rgba(0,255,230,0.10)}
 
-/* tabs (hover reveals techs - JS handles it) */
 .dom-tabs{
   position:relative;
   z-index:2;
@@ -327,8 +364,9 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
   color:#05070c;
   border-color: transparent;
 }
+.dom-tab:focus-visible{ outline:2px solid rgba(0,255,230,0.9); outline-offset:3px; }
+.dom-arrow:focus-visible{ outline:2px solid rgba(0,255,230,0.9); outline-offset:3px; }
 
-/* logo wall */
 .logo-wall{
   position:relative;
   z-index:2;
@@ -351,9 +389,9 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
   border-color: rgba(0,255,230,0.34);
   box-shadow: 0 0 0 6px rgba(0,255,230,0.06), 0 0 40px rgba(0,255,230,0.18);
 }
+.logo:focus-within{ outline:2px solid rgba(0,255,230,0.9); outline-offset:2px; }
 .logo img{width:30px;height:30px;object-fit:contain;filter: drop-shadow(0 0 10px rgba(0,255,230,0.12));}
 
-/* big tech tiles grid */
 .dom-grid{
   position:relative;
   z-index:2;
@@ -373,6 +411,7 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
   transition: transform .2s ease, border-color .2s ease;
 }
 .dom-tile:hover{ transform: translateY(-3px); border-color: rgba(0,255,230,0.35); }
+.dom-tile:focus-visible{ outline:2px solid rgba(0,255,230,0.9); outline-offset:3px; }
 .dom-tile img{
   width:100%;
   height:160px;
@@ -392,9 +431,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
 }
 .dom-label small{opacity:.7;font-weight:800;font-size:12px}
 
-/* =========================
-   ✅ hireU section
-========================= */
 .hireu-stage{
   position:relative;
   z-index:30;
@@ -441,7 +477,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
 }
 .hireu-wrap.is-hot:after{opacity:1}
 
-/* socials */
 .social-row{
   position:absolute;
   top:18px; left:18px; right:18px;
@@ -473,9 +508,9 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
   background: rgba(0,255,230,0.10);
   box-shadow: 0 0 0 6px rgba(0,255,230,0.06), 0 0 40px rgba(0,255,230,0.18);
 }
+.social-row a:focus-visible{ outline:2px solid rgba(0,255,230,0.9); outline-offset:3px; }
 .social-row svg{width:20px;height:20px;fill: rgba(255,255,255,0.90);filter: drop-shadow(0 0 10px rgba(0,255,230,0.10));}
 
-/* hireU word */
 .hireu-word{
   position:absolute;
   left:50%;
@@ -518,4 +553,6 @@ body.tree-exit .tree-layer{opacity:0; transform: translateY(-35vh); filter: blur
 @media (prefers-reduced-motion: reduce){
   .domains-glow{animation:none}
   .hero-smoke{animation:none}
+  #gl{animation:none}
+  body::before{animation:none}
 }
