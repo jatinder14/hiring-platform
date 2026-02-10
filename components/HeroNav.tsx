@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { UserMenu } from "./UserMenu";
 
 const navLinks = [
   { href: "#story", label: "For Companies" },
@@ -13,9 +16,29 @@ const navLinks = [
 
 export function HeroNav() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   const scrollToStory = () => {
     document.getElementById("story")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleFindAJob = () => {
+    if (status === "loading") return;
+    if (session) {
+      scrollToStory();
+    } else {
+      router.push("/auth/login?callbackUrl=/");
+    }
+  };
+
+  const handleHireTalent = () => {
+    if (status === "loading") return;
+    if (session) {
+      scrollToStory();
+    } else {
+      router.push("/auth/login?callbackUrl=/");
+    }
   };
 
   return (
@@ -34,12 +57,13 @@ export function HeroNav() {
         </nav>
 
         <div className="hn-actions">
-          <button className="hn-btn ghost" type="button">
+          <button className="hn-btn ghost" type="button" onClick={handleHireTalent}>
             Hire a Talent
           </button>
-          <button className="hn-btn" type="button" onClick={scrollToStory}>
+          <button className="hn-btn" type="button" onClick={handleFindAJob}>
             Find a Job
           </button>
+          <UserMenu session={session} />
         </div>
 
         <button
@@ -63,12 +87,15 @@ export function HeroNav() {
           </a>
         ))}
         <div className="hn-drawer-actions">
-          <button className="hn-btn ghost" type="button">
+          <button className="hn-btn ghost" type="button" onClick={() => { handleHireTalent(); setDrawerOpen(false); }}>
             Hire a Talent
           </button>
-          <button className="hn-btn" type="button" onClick={() => { scrollToStory(); setDrawerOpen(false); }}>
+          <button className="hn-btn" type="button" onClick={() => { handleFindAJob(); setDrawerOpen(false); }}>
             Find a Job
           </button>
+          <div className="hn-drawer-usermenu" onClick={() => setDrawerOpen(false)}>
+            <UserMenu session={session} variant="drawer" />
+          </div>
         </div>
       </div>
     </header>
