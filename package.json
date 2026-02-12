@@ -2,7 +2,9 @@
   "name": "hiring-platform",
   "version": "1.0.0",
   "private": true,
-  "engines": { "node": ">=18.x" },
+  "engines": {
+    "node": ">=18.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,6 +13,8 @@
     "deploy:prod": "vercel --prod"
   },
   "dependencies": {
+    "framer-motion": "^12.34.0",
+    "lucide-react": "^0.563.0",
     "next": "^14.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

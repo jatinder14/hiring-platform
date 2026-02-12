@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 const navLinks = [
@@ -34,12 +35,16 @@ export function HeroNav() {
         </nav>
 
         <div className="hn-actions">
-          <button className="hn-btn ghost" type="button">
-            Hire a Talent
-          </button>
-          <button className="hn-btn" type="button" onClick={scrollToStory}>
-            Find a Job
-          </button>
+          <Link href="/recruiter/register">
+            <button className="hn-btn ghost" type="button">
+              Hire a Talent
+            </button>
+          </Link>
+          <Link href="/job-seeker/register">
+            <button className="hn-btn" type="button">
+              Find a Job
+            </button>
+          </Link>
         </div>
 
         <button
