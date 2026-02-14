@@ -12,7 +12,7 @@ import {
     Settings,
     LogOut
 } from 'lucide-react';
-import { SignOutButton } from "@clerk/nextjs";
+import { signOut } from "next-auth/react";
 
 const menuItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard/company' },
@@ -40,13 +40,7 @@ export default function CompanySidebar() {
 
                 <nav className="sidebar-nav">
                     {menuItems.map((item) => {
-                        // Check if current path starts with the href
-                        // Except for dashboard root, which should match exactly or loosely depending on subroutes?
-                        // Actually, /dashboard/company should handle subroutes nicely if href structure is consistent.
-                        // For 'Dashboard', we might want explicit match or specific handling.
-                        // Standard startWith is usually fine.
                         const isActive = pathname === item.href || (item.href !== '/dashboard/company' && pathname.startsWith(item.href));
-
                         return (
                             <Link
                                 key={item.href}
@@ -61,18 +55,15 @@ export default function CompanySidebar() {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <SignOutButton>
-                        <button className="logout-btn">
-                            <LogOut size={20} />
-                            Logout
-                        </button>
-                    </SignOutButton>
+                    <button className="logout-btn" onClick={() => signOut({ callbackUrl: "/" })}>
+                        <LogOut size={20} />
+                        Logout
+                    </button>
                 </div>
             </aside>
 
             {/* Mobile Bottom Navigation - Adapted for Company */}
             <nav className="mobile-bottom-nav">
-                {/* Show fewer items on mobile or scrollable? Let's show key items */}
                 {menuItems.slice(0, 4).map((item) => {
                     const isActive = pathname === item.href || (item.href !== '/dashboard/company' && pathname.startsWith(item.href));
                     return (
@@ -87,12 +78,14 @@ export default function CompanySidebar() {
                     );
                 })}
 
-                <SignOutButton>
-                    <button className="mobile-nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                        <LogOut />
-                        <span>Logout</span>
-                    </button>
-                </SignOutButton>
+                <button
+                    className="mobile-nav-item"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                    <LogOut />
+                    <span>Logout</span>
+                </button>
             </nav>
         </>
     );

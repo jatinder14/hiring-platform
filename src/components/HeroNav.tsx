@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-
+import { signIn, signOut } from "next-auth/react";
 
 const navLinks = [
-  { href: "#story", label: "For Companies" },
-  { href: "#story", label: "For Talents" },
   { href: "#story", label: "Success Stories" },
   { href: "#story", label: "Blogs" },
   { href: "#story", label: "Pricing" },
@@ -15,8 +13,18 @@ const navLinks = [
 export function HeroNav() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const scrollToStory = () => {
-    document.getElementById("story")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const handleLogin = async (role: "recruiter" | "candidate") => {
+    // Set cookie to remember role (valid for 1 hour for login process)
+    document.cookie = `login_role=${role}; path=/; max-age=3600`;
+
+    // Force sign out to ensure fresh session with new role
+    await signOut({ redirect: false });
+
+    // Redirect to custom sign-in page with callback URL
+    // signIn() with no provider argument redirects to the configured sign-in page
+    signIn(undefined, {
+      callbackUrl: role === "recruiter" ? "/dashboard/company" : "/dashboard/jobs",
+    });
   };
 
   return (
@@ -35,12 +43,12 @@ export function HeroNav() {
         </nav>
 
         <div className="hn-actions">
-          <a href="/sign-in" className="hn-btn ghost">
-            Login
-          </a>
-          <a href="/sign-up" className="hn-btn">
-            Sign Up
-          </a>
+          <button onClick={() => handleLogin("recruiter")} className="hn-btn ghost">
+            Hire a Talent
+          </button>
+          <button onClick={() => handleLogin("candidate")} className="hn-btn">
+            Find a Job
+          </button>
         </div>
 
         <button
@@ -64,12 +72,24 @@ export function HeroNav() {
           </a>
         ))}
         <div className="hn-drawer-actions">
-          <a href="/sign-in" className="hn-btn ghost" onClick={() => setDrawerOpen(false)}>
-            Login
-          </a>
-          <a href="/sign-up" className="hn-btn" onClick={() => setDrawerOpen(false)}>
-            Sign Up
-          </a>
+          <button
+            onClick={() => {
+              handleLogin("recruiter");
+              setDrawerOpen(false);
+            }}
+            className="hn-btn ghost"
+          >
+            Hire a Talent
+          </button>
+          <button
+            onClick={() => {
+              handleLogin("candidate");
+              setDrawerOpen(false);
+            }}
+            className="hn-btn"
+          >
+            Find a Job
+          </button>
         </div>
       </div>
     </header>

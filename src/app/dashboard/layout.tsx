@@ -1,4 +1,6 @@
-import { currentUser } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import Sidebar from '@/components/dashboard/Sidebar';
 import CompanySidebar from '@/components/dashboard/CompanySidebar';
 import './dashboard.css';
@@ -8,9 +10,14 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const user = await currentUser();
-    // Default to CANDIDATE sidebar if role is missing or not CLIENT
-    const isCompany = user?.unsafeMetadata?.userRole === 'CLIENT';
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+        redirect('/');
+    }
+
+    // Default to CANDIDATE sidebar if role is missing or not recruiter
+    const isCompany = session?.user?.role === 'recruiter';
 
     return (
         <div className="dashboard-container">

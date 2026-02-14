@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { PrismaClient } from '@prisma/client';
 
 // Direct instantiation for debugging
@@ -9,7 +10,8 @@ export async function POST(req: Request) {
     console.log('[API] POST / api/applications - Request received');
 
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
+        const userId = session?.user?.id;
         console.log('[API] User ID from auth:', userId);
 
         if (!userId) {
@@ -97,7 +99,8 @@ export async function GET(req: Request) {
     console.log('[API] GET /api/applications - Request received');
 
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
+        const userId = session?.user?.id;
 
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useSession } from "next-auth/react";
 import {
     UploadCloud, Camera, User, Phone, MapPin,
     Linkedin, Github, Twitter, Trash2, Eye, FileText, Image as ImageIcon,
@@ -176,7 +176,7 @@ const CURRENCIES = [
 ].sort((a, b) => a.code.localeCompare(b.code)); // Sort alphabetically by code
 
 export default function ProfilePage() {
-    const { user, isLoaded } = useUser();
+    const { data: session, status } = useSession();
 
     // Form States
     const [fullName, setFullName] = useState('');
@@ -219,13 +219,13 @@ export default function ProfilePage() {
     const resumeInputRef = useRef<HTMLInputElement>(null);
     const countryDropdownRef = useRef<HTMLDivElement>(null);
 
-    // Initialize data from Clerk user
+    // Initialize data from Session user
     useEffect(() => {
-        if (isLoaded && user) {
-            setFullName(user.fullName || '');
-            setProfileImage(null);
+        if (status === "authenticated" && session?.user) {
+            setFullName(session.user.name || '');
+            setProfileImage(session.user.image || null);
         }
-    }, [isLoaded, user]);
+    }, [status, session]);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -267,7 +267,7 @@ export default function ProfilePage() {
         setResumes(prev => prev.filter(r => r.id !== id));
     };
 
-    if (!isLoaded) return <div className="p-8 text-center text-muted">Loading profile...</div>;
+    if (status === "loading") return <div className="p-8 text-center text-muted">Loading profile...</div>;
 
     return (
         <div className="profile-page">

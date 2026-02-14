@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
-import { currentUser } from '@clerk/nextjs/server';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function DashboardPage() {
-    const user = await currentUser();
-    const isCompany = user?.unsafeMetadata?.userRole === 'CLIENT';
+    const session = await getServerSession(authOptions);
+    const isCompany = session?.user?.role === 'recruiter';
 
     if (isCompany) {
         redirect('/dashboard/company');

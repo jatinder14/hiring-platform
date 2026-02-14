@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Briefcase, FileText, User, LogOut } from 'lucide-react';
-import { SignOutButton } from "@clerk/nextjs";
+import { signOut } from "next-auth/react";
 
 const menuItems = [
     { label: 'Jobs', icon: Briefcase, href: '/dashboard/jobs' },
@@ -42,12 +42,10 @@ export default function Sidebar() {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <SignOutButton>
-                        <button className="logout-btn">
-                            <LogOut size={20} />
-                            Logout
-                        </button>
-                    </SignOutButton>
+                    <button className="logout-btn" onClick={() => signOut({ callbackUrl: "/" })}>
+                        <LogOut size={20} />
+                        Logout
+                    </button>
                 </div>
             </aside>
 
@@ -67,12 +65,14 @@ export default function Sidebar() {
                     );
                 })}
 
-                <SignOutButton>
-                    <button className="mobile-nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                        <LogOut />
-                        <span>Logout</span>
-                    </button>
-                </SignOutButton>
+                <button
+                    className="mobile-nav-item"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                    <LogOut />
+                    <span>Logout</span>
+                </button>
             </nav>
         </>
     );

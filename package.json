@@ -13,7 +13,6 @@
     "deploy:prod": "vercel --prod"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.37.3",
     "@editorjs/checklist": "^1.6.0",
     "@editorjs/code": "^2.9.4",
     "@editorjs/delimiter": "^1.4.2",
@@ -34,6 +33,7 @@
     "lucide-react": "^0.563.0",
     "mongodb": "^7.1.0",
     "next": "^14.2.0",
+    "next-auth": "^4.24.11",
     "nextjs-toploader": "^3.9.17",
     "prisma": "6.19.2",
     "react": "^18.2.0",
