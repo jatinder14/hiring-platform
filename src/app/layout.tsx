@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { SessionProvider } from "@/components/SessionProvider";
+import NextTopLoader from 'nextjs-toploader';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,8 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <SessionProvider>
+          <NextTopLoader color="#00ffe6" showSpinner={false} />
+          {children}
+        </SessionProvider>
+      </body>
     </html>
   );
 }

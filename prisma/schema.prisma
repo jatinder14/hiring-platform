@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLIENT
+  CANDIDATE
+}
+
+model User {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId         String   @unique
+  email           String   @unique
+  name            String?
+  profileImageUrl String?
+  userRole        UserRole? @default(CANDIDATE)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  REJECTED
+  INTERVIEW
+  HIRED
+}
+
+model Job {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  company         String
+  location        String
+  description     String
+  employmentType  String        // e.g., FULL_TIME, REMOTE
+  category        String
+  skills          String[]
+  salary          String?       // e.g. "150,000"
+  currency        String?       // e.g. "USD"
+  postedById      String?       // Reference to Client Clerk ID
+  createdAt       DateTime      @default(now())
+  applications    Application[]
+}
+
+model Application {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  jobId        String            @db.ObjectId
+  job          Job               @relation(fields: [jobId], references: [id])
+  candidateId  String            // Clerk ID of the candidate
+  resumeUrl    String
+  motivation   String?
+  currentCTC   String?
+  expectedCTC  String?
+  noticePeriod String?
+  city         String?
+  status       ApplicationStatus @default(APPLIED)
+  appliedAt    DateTime          @default(now())
+}
