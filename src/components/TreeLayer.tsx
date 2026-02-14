@@ -31,7 +31,7 @@ export function TreeLayer() {
     const { ctx: treeCtx, resize: treeResize } = setupCanvas(treeCanvas);
     let W = 0,
       H = 0;
-    const edges: [ { x: number; y: number }, { x: number; y: number } ][] = [];
+    const edges: [{ x: number; y: number }, { x: number; y: number }][] = [];
     const sparks: { x: number; y: number; r: number; ph: number; sp: number }[] = [];
 
     function rebuildTree() {
@@ -159,15 +159,17 @@ export function TreeLayer() {
       treeCtx.fillRect(0, 0, W, H);
       treeCtx.restore();
 
-      requestAnimationFrame(drawTree);
-    }
-    requestAnimationFrame(drawTree);
+      treeCtx.restore();
 
-    // Ground mesh
+      treeAnimId = requestAnimationFrame(drawTree);
+    }
+    let treeAnimId = requestAnimationFrame(drawTree);
+
+    // Ground mesh - STATIC (no loop needed)
     const { ctx: groundCtx, resize: groundResize } = setupCanvas(groundCanvas);
     let meshW = 0,
       meshH = 0;
-    let meshEdges: [ { x: number; y: number }, { x: number; y: number } ][] = [];
+    let meshEdges: [{ x: number; y: number }, { x: number; y: number }][] = [];
 
     function buildMesh() {
       meshEdges = [];
@@ -194,15 +196,6 @@ export function TreeLayer() {
         }
       }
     }
-
-    function onGroundResize() {
-      const s = groundResize();
-      meshW = s.w;
-      meshH = s.h;
-      buildMesh();
-    }
-    onGroundResize();
-    window.addEventListener("resize", onGroundResize);
 
     function drawGround() {
       groundCtx.clearRect(0, 0, meshW, meshH);
@@ -239,14 +232,22 @@ export function TreeLayer() {
       groundCtx.fillStyle = g;
       groundCtx.fillRect(0, 0, meshW, meshH);
       groundCtx.restore();
-
-      requestAnimationFrame(drawGround);
     }
-    requestAnimationFrame(drawGround);
+
+    function onGroundResize() {
+      const s = groundResize();
+      meshW = s.w;
+      meshH = s.h;
+      buildMesh();
+      drawGround(); // Only draw when resized
+    }
+    onGroundResize();
+    window.addEventListener("resize", onGroundResize);
 
     return () => {
       window.removeEventListener("resize", onTreeResize);
       window.removeEventListener("resize", onGroundResize);
+      cancelAnimationFrame(treeAnimId);
     };
   }, []);
 
