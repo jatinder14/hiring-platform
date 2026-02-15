@@ -1,202 +1,318 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-    Briefcase,
-    Plus,
+    Eye,
+    Pencil,
+    Trash2,
     Search,
-    MoreVertical,
+    Plus,
     MapPin,
-    Clock,
+    Briefcase,
     Users,
-    ChevronRight,
+    Calendar,
     Filter,
-    ArrowUpRight,
-    SearchX
+    AlertCircle,
+    Loader2,
+    ChevronDown
 } from 'lucide-react';
 
-type Job = {
-    id: string;
-    title: string;
-    location: string;
-    type: string;
-    applicants: number;
-    status: 'Active' | 'Closed' | 'Draft';
-    postedDate: string;
-};
-
-const MOCK_JOBS: Job[] = [
-    {
-        id: '1',
-        title: 'Senior Frontend Engineer',
-        location: 'Remote',
-        type: 'Full-time',
-        applicants: 12,
-        status: 'Active',
-        postedDate: '2 days ago'
-    },
-    {
-        id: '2',
-        title: 'Product Designer',
-        location: 'Hybrid, London',
-        type: 'Full-time',
-        applicants: 8,
-        status: 'Active',
-        postedDate: '5 hours ago'
-    },
-    {
-        id: '3',
-        title: 'Backend Engineer (Node.js)',
-        location: 'Onsite, San Francisco',
-        type: 'Contract',
-        applicants: 5,
-        status: 'Draft',
-        postedDate: 'Not published'
-    }
-];
-
-export default function CompanyJobsPage() {
-    const [searchQuery, setSearchQuery] = useState('');
+export default function ManageJobsPage() {
+    const [jobs, setJobs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
+    const [jobToDelete, setJobToDelete] = useState<string | null>(null);
 
-    const filteredJobs = MOCK_JOBS.filter(job => {
-        const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            job.location.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus = statusFilter === 'All' || job.status === statusFilter;
+    useEffect(() => {
+        const fetchJobs = async () => {
+            try {
+                const res = await fetch('/api/company/jobs');
+                if (res.ok) {
+                    const data = await res.json();
+                    setJobs(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch jobs', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchJobs();
+    }, []);
+
+    const handleDelete = async () => {
+        if (!jobToDelete) return;
+
+        try {
+            const res = await fetch(`/api/company/jobs/${jobToDelete}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                setJobs(jobs.filter(job => job.id !== jobToDelete));
+                setJobToDelete(null);
+            } else {
+                alert('Failed to delete job');
+            }
+        } catch (error) {
+            console.error('Error deleting job:', error);
+            alert('Error deleting job');
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'N/A';
+        try {
+            return new Date(dateString).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch (e) {
+            return 'Invalid Date';
+        }
+    };
+
+    const filteredJobs = jobs.filter(job => {
+        const titleMatch = job.title?.toLowerCase() || '';
+        const locMatch = job.location?.toLowerCase() || '';
+        const searchLower = searchTerm.toLowerCase();
+
+        const matchesSearch = titleMatch.includes(searchLower) || locMatch.includes(searchLower);
+
+        let matchesStatus = true;
+        if (statusFilter !== 'All') {
+            if (statusFilter === 'Active') matchesStatus = job.status === 'ACTIVE';
+            else if (statusFilter === 'Draft') matchesStatus = job.status === 'DRAFT';
+            else if (statusFilter === 'Inactive') matchesStatus = ['CLOSED', 'ARCHIVED'].includes(job.status);
+        }
+
         return matchesSearch && matchesStatus;
     });
 
+    const getStatusBadgeStyle = (status: string) => {
+        const s = status || 'DRAFT';
+        const baseStyle = {
+            padding: '4px 10px',
+            borderRadius: '999px',
+            fontSize: '12px',
+            fontWeight: '600',
+            textTransform: 'capitalize' as const,
+            display: 'inline-block'
+        };
+
+        switch (s) {
+            case 'ACTIVE':
+                return { ...baseStyle, backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' };
+            case 'DRAFT':
+                return { ...baseStyle, backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' };
+            case 'CLOSED':
+            case 'ARCHIVED':
+                return { ...baseStyle, backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' };
+            default:
+                return { ...baseStyle, backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' };
+        }
+    };
+
+    const StatusBadge = ({ status }: { status: string }) => {
+        const style = getStatusBadgeStyle(status);
+        let label = status ? status.toLowerCase() : 'Draft';
+        if (status === 'ACTIVE' || status === 'DRAFT') label = status.charAt(0) + status.slice(1).toLowerCase();
+        if (status === 'CLOSED' || status === 'ARCHIVED') label = 'Inactive';
+
+        return <span style={style}>{label}</span>;
+    };
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+                <Loader2 className="animate-spin text-primary" size={40} />
+            </div>
+        );
+    }
+
     return (
-        <div className="dashboard-page-content">
+        <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
             {/* Header */}
-            <header className="page-header">
-                <div className="page-header-content">
-                    <h1 className="page-title">Manage Jobs</h1>
-                    <p className="page-subtitle">Track, edit, and manage your open positions.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                    <h1 className="page-title" style={{ margin: 0 }}>Manage Jobs</h1>
+                    <p className="page-subtitle" style={{ margin: '4px 0 0 0' }}>Track and manage your diverse hiring pipeline.</p>
                 </div>
-                <Link href="/dashboard/company/create-job" className="btn-primary">
+                <Link href="/dashboard/company/create-job" className="btn-primary" style={{ textDecoration: 'none' }}>
                     <Plus size={18} />
                     Post New Job
                 </Link>
-            </header>
+            </div>
 
-            {/* Filters & Search */}
-            <div className="card" style={{ padding: '16px 24px', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div className="input-wrapper" style={{ flex: 2, minWidth: '280px' }}>
-                        <Search size={18} />
+            {/* Filter Bar */}
+            <div className="card" style={{ padding: '20px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                    {/* Search */}
+                    <div style={{ flex: '1', minWidth: '250px', position: 'relative' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
                         <input
                             type="text"
-                            placeholder="Search by title or location..."
+                            placeholder="Search jobs by title or location..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="form-input"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ paddingLeft: '40px', width: '100%' }}
                         />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '200px' }}>
+                    {/* Status Filter */}
+                    <div style={{ width: '200px', position: 'relative' }}>
+                        <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', zIndex: 1 }} />
                         <select
-                            className="form-input"
-                            style={{ paddingLeft: '12px' }}
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
+                            className="form-input"
+                            style={{ paddingLeft: '36px', width: '100%', appearance: 'none', cursor: 'pointer' }}
                         >
                             <option value="All">All Statuses</option>
                             <option value="Active">Active</option>
-                            <option value="Closed">Closed</option>
                             <option value="Draft">Draft</option>
+                            <option value="Inactive">Inactive</option>
                         </select>
-
-                        <button className="btn-secondary" style={{ display: 'flex', gap: '8px', padding: '0 16px' }}>
-                            <Filter size={18} />
-                            Filters
-                        </button>
+                        <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                     </div>
                 </div>
             </div>
 
             {/* Jobs List */}
-            <div className="jobs-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {filteredJobs.length > 0 ? (
                     filteredJobs.map((job) => (
-                        <div key={job.id} className="card" style={{ padding: '24px', transition: 'all 0.2s ease', cursor: 'pointer', border: '1px solid #e5e7eb' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div style={{ display: 'flex', gap: '20px' }}>
-                                    <div style={{
-                                        width: '52px',
-                                        height: '52px',
-                                        borderRadius: '12px',
-                                        backgroundColor: '#f3f4f6',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#3b82f6'
-                                    }}>
-                                        <Briefcase size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '6px' }}>{job.title}</h3>
-                                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#6b7280' }}>
-                                                <MapPin size={14} /> {job.location}
-                                            </span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#6b7280' }}>
-                                                <Clock size={14} /> {job.type}
-                                            </span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#6b7280' }}>
-                                                <Users size={14} /> {job.applicants} Applicants
-                                            </span>
-                                        </div>
-                                    </div>
+                        <div key={job.id} className="card job-card" style={{ padding: '24px', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+                            {/* Job Info */}
+                            <div style={{ flex: '1', minWidth: '300px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#111827' }}>{job.title}</h3>
+                                    <StatusBadge status={job.status} />
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <span style={{
-                                        padding: '4px 12px',
-                                        borderRadius: '99px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        backgroundColor: job.status === 'Active' ? '#ecfdf5' : job.status === 'Draft' ? '#f3f4f6' : '#fef2f2',
-                                        color: job.status === 'Active' ? '#10b981' : job.status === 'Draft' ? '#6b7280' : '#ef4444'
-                                    }}>
-                                        {job.status}
-                                    </span>
-                                    <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
-                                        <MoreVertical size={20} />
-                                    </button>
+
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', color: '#6b7280', fontSize: '14px' }}>
+                                    {job.location && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <MapPin size={14} />
+                                            <span>{job.location}</span>
+                                        </div>
+                                    )}
+                                    {job.employmentType && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Briefcase size={14} />
+                                            <span>{job.employmentType}</span>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Users size={14} />
+                                        <span>{job._count?.applications || 0} Applicants</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Calendar size={14} />
+                                        <span>Posted {formatDate(job.createdAt)}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <p style={{ fontSize: '13px', color: '#9ca3af' }}>Posted {job.postedDate}</p>
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    <button className="view-all-btn" style={{ fontSize: '14px' }}>Edit Job</button>
-                                    <Link href={`/dashboard/company/jobs/${job.id}`} style={{
-                                        textDecoration: 'none',
-                                        color: '#3b82f6',
-                                        fontWeight: '600',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                    }}>
-                                        View Pipeline <ArrowUpRight size={16} />
-                                    </Link>
-                                </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <Link
+                                    href={`/dashboard/company/jobs/${job.id}`}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+                                        borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500',
+                                        backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #dbeafe'
+                                    }}
+                                >
+                                    <Eye size={16} /> View
+                                </Link>
+
+                                <Link
+                                    href={`/dashboard/company/jobs/${job.id}/edit`}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+                                        borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500',
+                                        backgroundColor: '#ffffff', color: '#374151', border: '1px solid #d1d5db'
+                                    }}
+                                >
+                                    <Pencil size={16} /> Edit
+                                </Link>
+
+                                <button
+                                    onClick={() => setJobToDelete(job.id)}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
+                                        borderRadius: '8px', border: '1px solid #fee2e2', fontSize: '14px', fontWeight: '500',
+                                        backgroundColor: '#ffffff', color: '#dc2626', cursor: 'pointer'
+                                    }}
+                                >
+                                    <Trash2 size={16} /> Delete
+                                </button>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-                        <div style={{ marginBottom: '20px', color: '#9ca3af' }}>
-                            <SearchX size={48} strokeWidth={1.5} style={{ margin: '0 auto' }} />
+                    <div className="card" style={{ padding: '64px', textAlign: 'center', borderStyle: 'dashed' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <Search size={24} style={{ color: '#9ca3af' }} />
                         </div>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>No jobs found</h3>
-                        <p style={{ color: '#6b7280', maxWidth: '320px', margin: '0 auto' }}>
-                            We couldn't find any jobs matching your search parameters. Try adjusting your filters.
+                        <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '500', color: '#111827' }}>No jobs found</h3>
+                        <p style={{ margin: 0, color: '#6b7280' }}>
+                            No job postings matched your search. Try adjusting filters or post a new job.
                         </p>
                     </div>
                 )}
             </div>
+
+            {/* Delete Modal */}
+            {jobToDelete && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+                    <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '24px', animation: 'fadeIn 0.2s ease-out' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', flexShrink: 0 }}>
+                                <AlertCircle size={24} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: '#111827' }}>Delete Job Posting</h3>
+                                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>This action cannot be undone.</p>
+                            </div>
+                        </div>
+
+                        <p style={{ margin: '0 0 24px', color: '#4b5563', lineHeight: '1.5' }}>
+                            Are you sure you want to delete <span style={{ fontWeight: '600', color: '#111827' }}>
+                                {jobs.find(j => j.id === jobToDelete)?.title || 'this job'}
+                            </span>?
+                            All associated data will be permanently removed.
+                        </p>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button
+                                onClick={() => setJobToDelete(null)}
+                                style={{
+                                    padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db',
+                                    backgroundColor: '#ffffff', color: '#374151', fontSize: '14px', fontWeight: '500', cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                style={{
+                                    padding: '10px 20px', borderRadius: '8px', border: 'none',
+                                    backgroundColor: '#dc2626', color: '#ffffff', fontSize: '14px', fontWeight: '500', cursor: 'pointer'
+                                }}
+                            >
+                                Yes, Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

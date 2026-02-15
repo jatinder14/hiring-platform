@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Video,
     Calendar,
@@ -14,38 +14,45 @@ import {
     VideoOff
 } from 'lucide-react';
 
-type Interview = {
-    id: string;
-    candidateName: string;
-    jobTitle: string;
-    date: string;
-    time: string;
-    type: 'Video' | 'Onsite' | 'Technical';
-    status: 'Upcoming' | 'Completed' | 'Cancelled';
-};
-
-const MOCK_INTERVIEWS: Interview[] = [
-    {
-        id: '1',
-        candidateName: 'John Doe',
-        jobTitle: 'Senior Frontend Engineer',
-        date: 'Today, Oct 24',
-        time: '2:00 PM - 3:00 PM',
-        type: 'Video',
-        status: 'Upcoming'
-    },
-    {
-        id: '2',
-        candidateName: 'Jane Smith',
-        jobTitle: 'Product Designer',
-        date: 'Tomorrow, Oct 25',
-        time: '11:00 AM - 12:00 PM',
-        type: 'Technical',
-        status: 'Upcoming'
-    }
-];
-
 export default function CompanyInterviewsPage() {
+    const [interviews, setInterviews] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchInterviews = async () => {
+            try {
+                const res = await fetch('/api/company/applications');
+                if (res.ok) {
+                    const data = await res.json();
+                    const interviewApps = data.filter((app: any) =>
+                        ['Interview', 'INTERVIEW', 'Shortlisted', 'SHORTLISTED'].includes(app.status)
+                    );
+
+                    const mappedInterviews = interviewApps.map((app: any) => ({
+                        id: app.id,
+                        candidateName: app.candidate?.name || 'Unknown Candidate',
+                        jobTitle: app.job?.title || 'Unknown Job',
+                        date: new Date(app.updatedAt).toLocaleDateString(),
+                        time: new Date(app.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        type: 'Video', // Default placeholder
+                        status: app.status
+                    }));
+                    setInterviews(mappedInterviews);
+                }
+            } catch (error) {
+                console.error("Failed to fetch interviews", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInterviews();
+    }, []);
+
+    if (loading) {
+        return <div className="p-12 text-center">Loading interviews...</div>;
+    }
+
     return (
         <div className="dashboard-page-content">
             {/* Header */}
@@ -68,8 +75,8 @@ export default function CompanyInterviewsPage() {
                     </div>
 
                     <div className="activity-list">
-                        {MOCK_INTERVIEWS.length > 0 ? (
-                            MOCK_INTERVIEWS.map((interview) => (
+                        {interviews.length > 0 ? (
+                            interviews.map((interview) => (
                                 <div key={interview.id} className="activity-item" style={{ alignItems: 'center' }}>
                                     <div className="activity-avatar" style={{ backgroundColor: '#eff6ff', color: '#3b82f6' }}>
                                         {interview.type === 'Video' ? <Video size={20} /> : <User size={20} />}
@@ -83,7 +90,7 @@ export default function CompanyInterviewsPage() {
                                                         <Calendar size={12} /> {interview.date}
                                                     </span>
                                                     <span style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <Clock size={12} /> {interview.time}
+                                                        <Clock size={12} /> {interview.time} (Last Update)
                                                     </span>
                                                 </div>
                                             </div>
@@ -112,7 +119,7 @@ export default function CompanyInterviewsPage() {
                         ) : (
                             <div style={{ textAlign: 'center', padding: '60px 24px' }}>
                                 <VideoOff size={40} strokeWidth={1.5} style={{ color: '#9ca3af', marginBottom: '16px' }} />
-                                <p style={{ color: '#6b7280' }}>No interviews scheduled for today.</p>
+                                <p style={{ color: '#6b7280' }}>No interviews scheduled.</p>
                             </div>
                         )}
                     </div>
@@ -123,12 +130,12 @@ export default function CompanyInterviewsPage() {
                         <h3 className="widget-header">Interview Stats</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '14px', color: '#6b7280' }}>Total this week</span>
-                                <span style={{ fontSize: '18px', fontWeight: '800', color: '#111827' }}>12</span>
+                                <span style={{ fontSize: '14px', color: '#6b7280' }}>Total Candidates</span>
+                                <span style={{ fontSize: '18px', fontWeight: '800', color: '#111827' }}>{interviews.length}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '14px', color: '#6b7280' }}>Completed</span>
-                                <span style={{ fontSize: '18px', fontWeight: '800', color: '#10b981' }}>8</span>
+                                <span style={{ fontSize: '14px', color: '#6b7280' }}>Confirmed</span>
+                                <span style={{ fontSize: '18px', fontWeight: '800', color: '#10b981' }}>{interviews.length}</span>
                             </div>
                         </div>
                     </div>

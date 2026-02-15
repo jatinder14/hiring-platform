@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Users,
     Search,
@@ -26,43 +26,54 @@ type Candidate = {
     avatar?: string;
 };
 
-const MOCK_CANDIDATES: Candidate[] = [
-    {
-        id: '1',
-        name: 'Alex Johnson',
-        role: 'Senior React Developer',
-        jobApplied: 'Senior Frontend Engineer',
-        status: 'Interview',
-        experience: '6 years',
-        matchScore: 94
-    },
-    {
-        id: '2',
-        name: 'Sarah Mills',
-        role: 'Product Designer',
-        jobApplied: 'Product Designer',
-        status: 'New',
-        experience: '4 years',
-        matchScore: 88
-    },
-    {
-        id: '3',
-        name: 'Michael Chen',
-        role: 'Backend Developer',
-        jobApplied: 'Backend Engineer (Node.js)',
-        status: 'Offered',
-        experience: '8 years',
-        matchScore: 91
-    }
-];
-
 export default function CompanyCandidatesPage() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [candidates, setCandidates] = useState<Candidate[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
 
-    const filteredCandidates = MOCK_CANDIDATES.filter(c =>
+    useEffect(() => {
+        const fetchCandidates = async () => {
+            try {
+                const res = await fetch('/api/company/applications');
+                if (!res.ok) throw new Error('Failed to fetch candidates');
+                const data = await res.json();
+
+                const mappedCandidates = data.map((app: any) => ({
+                    id: app.id,
+                    name: app.candidate?.name || 'Unknown Candidate',
+                    role: app.candidate?.email || 'N/A', // Using email as role placeholder or fetch role from user profile if available
+                    jobApplied: app.job?.title || 'Unknown Job',
+                    status: app.status,
+                    experience: app.currentCTC ? `CTC: ${app.currentCTC}` : (app.noticePeriod || 'N/A'),
+                    matchScore: 0, // Placeholder as we don't calculate score yet
+                    avatar: app.candidate?.profileImageUrl
+                }));
+
+                setCandidates(mappedCandidates);
+            } catch (err) {
+                console.error(err);
+                setError('Failed to load candidates');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCandidates();
+    }, []);
+
+    const filteredCandidates = candidates.filter(c =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.role.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    if (isLoading) {
+        return <div className="p-8 text-center">Loading candidates...</div>;
+    }
+
+    if (error) {
+        return <div className="p-8 text-center text-red-500">{error}</div>;
+    }
 
     return (
         <div className="dashboard-page-content">
@@ -81,7 +92,7 @@ export default function CompanyCandidatesPage() {
                         <Search size={18} />
                         <input
                             type="text"
-                            placeholder="Search candidates by name, role..."
+                            placeholder="Search candidates by name, email..."
                             className="form-input"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -111,26 +122,33 @@ export default function CompanyCandidatesPage() {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     fontWeight: '700',
-                                    fontSize: '18px'
+                                    fontSize: '18px',
+                                    overflow: 'hidden'
                                 }}>
-                                    {candidate.name.charAt(0)}
+                                    {candidate.avatar ? (
+                                        <img src={candidate.avatar} alt={candidate.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        candidate.name.charAt(0).toUpperCase()
+                                    )}
                                 </div>
                                 <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                                         <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: 0 }}>{candidate.name}</h3>
-                                        <span style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            fontSize: '11px',
-                                            fontWeight: '700',
-                                            color: '#f59e0b',
-                                            backgroundColor: '#fffbeb',
-                                            padding: '2px 8px',
-                                            borderRadius: '99px'
-                                        }}>
-                                            <Star size={10} fill="#f59e0b" /> {candidate.matchScore}% Match
-                                        </span>
+                                        {candidate.matchScore > 0 && (
+                                            <span style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                fontSize: '11px',
+                                                fontWeight: '700',
+                                                color: '#f59e0b',
+                                                backgroundColor: '#fffbeb',
+                                                padding: '2px 8px',
+                                                borderRadius: '99px'
+                                            }}>
+                                                <Star size={10} fill="#f59e0b" /> {candidate.matchScore}% Match
+                                            </span>
+                                        )}
                                     </div>
                                     <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>{candidate.role} • {candidate.experience}</p>
                                     <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Applied for <span style={{ color: '#4b5563', fontWeight: '600' }}>{candidate.jobApplied}</span></p>
@@ -144,8 +162,8 @@ export default function CompanyCandidatesPage() {
                                         borderRadius: '99px',
                                         fontSize: '12px',
                                         fontWeight: '600',
-                                        backgroundColor: candidate.status === 'Interview' ? '#eff6ff' : candidate.status === 'Offered' ? '#ecfdf5' : '#f3f4f6',
-                                        color: candidate.status === 'Interview' ? '#3b82f6' : candidate.status === 'Offered' ? '#10b981' : '#6b7280'
+                                        backgroundColor: ['Interview', 'INTERVIEW'].includes(candidate.status) ? '#eff6ff' : ['Offered', 'HIRED'].includes(candidate.status) ? '#ecfdf5' : '#f3f4f6',
+                                        color: ['Interview', 'INTERVIEW'].includes(candidate.status) ? '#3b82f6' : ['Offered', 'HIRED'].includes(candidate.status) ? '#10b981' : '#6b7280'
                                     }}>
                                         {candidate.status}
                                     </span>
@@ -179,7 +197,7 @@ export default function CompanyCandidatesPage() {
                                     }}>
                                         <Calendar size={16} />
                                     </button>
-                                    <Link href={`#`} style={{
+                                    <Link href={`/dashboard/company/candidates/${candidate.id}`} style={{
                                         textDecoration: 'none',
                                         padding: '8px 16px',
                                         borderRadius: '10px',
@@ -204,7 +222,7 @@ export default function CompanyCandidatesPage() {
                     <div style={{ textAlign: 'center', padding: '60px 24px' }}>
                         <UserX size={48} strokeWidth={1.5} style={{ margin: '0 auto', color: '#9ca3af', marginBottom: '16px' }} />
                         <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>No candidates found</h3>
-                        <p style={{ color: '#6b7280' }}>Try changing your search query or filters.</p>
+                        <p style={{ color: '#6b7280' }}>Candidates who apply to your jobs will appear here.</p>
                     </div>
                 )}
             </div>

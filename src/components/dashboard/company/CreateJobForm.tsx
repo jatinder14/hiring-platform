@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { Briefcase, MapPin, DollarSign, Clock, CheckCircle, ChevronRight, X, Plus, Search, Globe, Building2, Map } from 'lucide-react';
 
 type JobData = {
@@ -64,6 +65,7 @@ const CITIES: Record<string, string[]> = {
 
 export default function CreateJobForm() {
     const router = useRouter();
+    const { user } = useUser();
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -150,11 +152,63 @@ export default function CreateJobForm() {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            console.log("Submitting Job:", formData);
+            // Get company name - default to "My Company" if user name is missing
+            const companyName = user?.username || user?.fullName || "My Company";
+
+            // Construct payload
+            const payload = {
+                title: formData.title,
+                company: companyName, // From user profile
+                description: formData.description,
+                employmentType: formData.employmentType,
+
+                // Location Handling
+                location: [formData.city, formData.state, formData.country].filter(Boolean).join(", ") || "Remote",
+                country: formData.country,
+                state: formData.state,
+                city: formData.city,
+                pincode: formData.pincode,
+
+                // Salary Handling
+                salary: `${formData.salaryMin} - ${formData.salaryMax}`,
+                currency: formData.currency,
+
+                // Other fields
+                category: "Engineering", // Default for now, should add to form
+                skills: formData.skills,
+                workMode: formData.workMode,
+                experienceMin: formData.expMin,
+                experienceMax: formData.expMax,
+                requirements: formData.requirements,
+
+                // Critical: Set status to ACTIVE
+                status: 'ACTIVE'
+            };
+
+            console.log("Submitting Job Payload:", payload);
+
+            const response = await fetch('/api/jobs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to post job');
+            }
+
+            const result = await response.json();
+            console.log("Job posted successfully:", result);
+
+            // Redirect to jobs page
             router.push('/dashboard/company/jobs');
-        } catch (error) {
-            console.error("Failed to post job", error);
+            router.refresh(); // Refresh data
+        } catch (error: any) {
+            console.error("Failed to post job:", error);
+            alert(`Failed to post job: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }

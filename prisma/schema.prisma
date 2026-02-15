@@ -37,6 +37,13 @@ enum ApplicationStatus {
   HIRED
 }
 
+enum JobStatus {
+  DRAFT      // Not visible to candidates
+  ACTIVE     // Accepting applications
+  CLOSED     // No longer accepting applications
+  ARCHIVED   // Old/deleted jobs
+}
+
 model Job {
   id              String        @id @default(auto()) @map("_id") @db.ObjectId
   title           String
@@ -48,9 +55,21 @@ model Job {
   skills          String[]
   salary          String?       // e.g. "150,000"
   currency        String?       // e.g. "USD"
-  postedById      String?       // Reference to Client Clerk ID
+  
+  // 🔒 SECURITY: Company ownership (REQUIRED for multi-tenant isolation)
+  companyId       String        // Clerk ID of company (was postedById)
+  
+  // 🔒 SECURITY: Job visibility control
+  status          JobStatus     @default(DRAFT)
+  
   createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   applications    Application[]
+  
+  // Performance indexes
+  @@index([companyId])
+  @@index([status])
+  @@index([companyId, status])
 }
 
 model Application {
@@ -58,6 +77,10 @@ model Application {
   jobId        String            @db.ObjectId
   job          Job               @relation(fields: [jobId], references: [id])
   candidateId  String            // Clerk ID of the candidate
+  
+  // 🔒 SECURITY: Direct company link for efficient filtering & isolation
+  companyId    String            // CRITICAL: Denormalized for security & performance
+  
   resumeUrl    String
   motivation   String?
   currentCTC   String?
@@ -66,4 +89,10 @@ model Application {
   city         String?
   status       ApplicationStatus @default(APPLIED)
   appliedAt    DateTime          @default(now())
+  
+  // Performance indexes
+  @@index([companyId])
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([companyId, status])
 }

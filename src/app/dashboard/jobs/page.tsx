@@ -1,45 +1,36 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Briefcase, MapPin, DollarSign, CheckCircle, SlidersHorizontal, X } from 'lucide-react';
+import { Briefcase, MapPin, DollarSign, CheckCircle, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-const mockJobs = [
-    {
-        id: "1",
-        title: "Senior Full Stack Engineer",
-        company: "TechNova Solutions",
-        description: "We are looking for an experienced Full Stack Engineer to lead our core product team. You will be responsible for...",
-        tags: ["Full Time", "Remote", "React", "Node.js"],
-        location: "Remote",
-        salary: "$120k - $150k"
-    },
-    {
-        id: "2",
-        title: "Product Designer",
-        company: "Creative Studio",
-        description: "Join our design team to create beautiful and intuitive user experiences. Proficiency in Figma and Adobe Suite required.",
-        tags: ["Contract", "Hybrid", "UI/UX", "Figma"],
-        location: "New York, NY",
-        salary: "$90k - $110k"
-    },
-    {
-        id: "3",
-        title: "Backend Developer",
-        company: "DataFlow Systems",
-        description: "Seeking a backend specialist to optimize our high-performance data processing pipeline using Python and Go.",
-        tags: ["Full Time", "On-site", "Python", "Go"],
-        location: "Austin, TX",
-        salary: "$130k - $160k"
-    },
-];
+type Job = {
+    id: string;
+    title: string;
+    company: string;
+    description: string;
+    employmentType: string;
+    location: string;
+    salary: string;
+    currency: string;
+    skills: string[];
+    createdAt: string;
+};
+
+type Application = {
+    id: string;
+    jobId: string;
+    status: string;
+};
 
 export default function JobsPage() {
-    const [jobs, setJobs] = useState(mockJobs);
-    const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState({
-        fullTime: true,
+        fullTime: false,
         contract: false,
         internship: false,
         category: 'All Categories',
@@ -47,9 +38,34 @@ export default function JobsPage() {
     });
 
     useEffect(() => {
-        // In real app, fetch from /api/applications or check status
-        const saved = localStorage.getItem('applied_jobs');
-        if (saved) setAppliedJobs(JSON.parse(saved));
+        async function fetchData() {
+            try {
+                // Fetch jobs and applications in parallel
+                const [jobsRes, appsRes] = await Promise.all([
+                    fetch('/api/jobs'),
+                    fetch('/api/applications') // To check which jobs user applied to
+                ]);
+
+                if (!jobsRes.ok) throw new Error('Failed to fetch jobs');
+
+                const jobsData = await jobsRes.json();
+                setJobs(jobsData);
+
+                // If user is logged in, appsRes might be ok, otherwise 401
+                if (appsRes.ok) {
+                    const appsData: Application[] = await appsRes.json();
+                    const appliedIds = new Set(appsData.map(app => app.jobId));
+                    setAppliedJobIds(appliedIds);
+                }
+            } catch (err: any) {
+                console.error("Error loading jobs:", err);
+                setError('Failed to load jobs. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchData();
     }, []);
 
     const handleClearFilters = () => {
@@ -61,6 +77,40 @@ export default function JobsPage() {
             skills: ''
         });
     };
+
+    const filteredJobs = jobs.filter(job => {
+        // Employment Type Filter
+        if (filters.fullTime && job.employmentType !== 'Full-time') return false;
+        if (filters.contract && job.employmentType !== 'Contract') return false;
+        if (filters.internship && job.employmentType !== 'Internship') return false;
+
+        // Skill Filter (Simple text match)
+        if (filters.skills && !job.skills.some(skill => skill.toLowerCase().includes(filters.skills.toLowerCase()))) return false;
+
+        return true;
+    });
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[50vh]">
+                <Loader2 className="animate-spin text-blue-500" size={32} />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 text-center text-red-500">
+                <p>{error}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     const FilterContent = () => (
         <>
@@ -121,9 +171,7 @@ export default function JobsPage() {
             </div>
 
             <div className="filter-actions">
-                <button className="btn-primary" style={{ width: '100%', marginBottom: '8px' }}>
-                    Apply Filters
-                </button>
+                {/* Filters are applied automatically in this implementation */}
                 <button
                     className="btn-secondary"
                     style={{ width: '100%' }}
@@ -158,58 +206,68 @@ export default function JobsPage() {
             <div className="jobs-page-grid">
                 {/* Job List - Now on LEFT */}
                 <div className="job-list">
-                    {jobs.map((job) => {
-                        const hasApplied = appliedJobs.includes(job.id);
+                    {filteredJobs.length > 0 ? (
+                        filteredJobs.map((job) => {
+                            const hasApplied = appliedJobIds.has(job.id);
 
-                        return (
-                            <div key={job.id} className="job-card">
-                                <div className="job-info">
-                                    <h3>{job.title}</h3>
-                                    <span className="company-name">{job.company}</span>
-                                    <div className="job-tags mb-4" style={{ marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        {job.tags.map(tag => (
-                                            <span key={tag} className="tag">{tag}</span>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-4 text-gray-500 text-sm mb-4" style={{ display: 'flex', gap: '16px', color: '#6b7280', marginBottom: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={14} /> {job.location}</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><DollarSign size={14} /> {job.salary}</span>
-                                    </div>
-                                    <p style={{ color: '#4b5563', lineHeight: '1.5', fontSize: '15px' }}>{job.description}</p>
-                                </div>
-                                <div className="job-actions">
-                                    {hasApplied ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
-                                            <button
-                                                className="btn-secondary"
-                                                disabled
-                                                style={{
-                                                    cursor: 'not-allowed',
-                                                    backgroundColor: '#f3f4f6',
-                                                    borderColor: '#e5e7eb',
-                                                    color: '#9ca3af',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '8px'
-                                                }}
-                                            >
-                                                <CheckCircle size={16} style={{ flexShrink: 0 }} />
-                                                <span>Applied</span>
-                                            </button>
-                                            <Link href="/dashboard/applications" style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none', textAlign: 'center' }}>
-                                                View Application
-                                            </Link>
+                            return (
+                                <div key={job.id} className="job-card">
+                                    <div className="job-info">
+                                        <h3>{job.title}</h3>
+                                        <span className="company-name">{job.company}</span>
+                                        <div className="job-tags mb-4" style={{ marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                            <span className="tag text-xs font-semibold bg-blue-50 text-blue-600 px-2 py-1 rounded">{job.employmentType}</span>
+                                            {job.skills && job.skills.slice(0, 3).map(skill => (
+                                                <span key={skill} className="tag text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{skill}</span>
+                                            ))}
                                         </div>
-                                    ) : (
-                                        <Link href={`/dashboard/jobs/${job.id}/apply`} className="btn-primary" style={{ textDecoration: 'none' }}>
-                                            Apply
-                                        </Link>
-                                    )}
+                                        <div className="flex gap-4 text-gray-500 text-sm mb-4" style={{ display: 'flex', gap: '16px', color: '#6b7280', marginBottom: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={14} /> {job.location}</span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><DollarSign size={14} /> {job.salary || "Competitive"} {job.currency || ""}</span>
+                                        </div>
+                                        <p style={{ color: '#4b5563', lineHeight: '1.5', fontSize: '15px' }} className="line-clamp-3">
+                                            {job.description && job.description.length > 150 ? job.description.substring(0, 150) + "..." : job.description}
+                                        </p>
+                                    </div>
+                                    <div className="job-actions">
+                                        {hasApplied ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
+                                                <button
+                                                    className="btn-secondary"
+                                                    disabled
+                                                    style={{
+                                                        cursor: 'not-allowed',
+                                                        backgroundColor: '#f3f4f6',
+                                                        borderColor: '#e5e7eb',
+                                                        color: '#9ca3af',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '8px'
+                                                    }}
+                                                >
+                                                    <CheckCircle size={16} style={{ flexShrink: 0 }} />
+                                                    <span>Applied</span>
+                                                </button>
+                                                <Link href="/dashboard/applications" style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none', textAlign: 'center' }}>
+                                                    View Application
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <Link href={`/dashboard/jobs/${job.id}/apply`} className="btn-primary" style={{ textDecoration: 'none' }}>
+                                                Apply
+                                            </Link>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    ) : (
+                        <div className="text-center py-12 text-gray-500">
+                            <p>No jobs found matching your criteria.</p>
+                            <button onClick={handleClearFilters} className="text-blue-500 underline mt-2">Clear filters</button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Desktop Filter Panel - Now on RIGHT */}

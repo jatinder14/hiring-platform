@@ -1,7 +1,77 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Briefcase, Users, Clock, ChevronRight, Activity, Zap, FileText } from 'lucide-react';
+import { Plus, Briefcase, Users, Clock, FileText, Zap, Loader2 } from 'lucide-react';
 
 export default function CompanyDashboardPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [stats, setStats] = useState({
+        activeJobs: 0,
+        totalCandidates: 0,
+        totalApplications: 0,
+        interviews: 0
+    });
+    const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                // Fetch Jobs
+                const jobsRes = await fetch('/api/company/jobs');
+                const jobsData = await jobsRes.json();
+                const activeJobs = Array.isArray(jobsData) ? jobsData.filter((j: any) => j.status === 'ACTIVE').length : 0;
+
+                // Fetch Applications
+                const appsRes = await fetch('/api/company/applications');
+                const appsData = await appsRes.json();
+                const totalApps = Array.isArray(appsData) ? appsData.length : 0;
+
+                // For this demo, assume unique candidates = total applications (simplified)
+                // or distinctive candidateIds count
+                const uniqueCandidates = Array.isArray(appsData) ? new Set(appsData.map((a: any) => a.candidateId)).size : 0;
+
+                // Count interviews (status = 'Interview' or 'INTERVIEW')
+                const interviewCount = Array.isArray(appsData) ? appsData.filter((a: any) => ['Interview', 'INTERVIEW'].includes(a.status)).length : 0;
+
+                setStats({
+                    activeJobs,
+                    totalCandidates: uniqueCandidates,
+                    totalApplications: totalApps,
+                    interviews: interviewCount
+                });
+
+                // Recent Activity from Applications
+                if (Array.isArray(appsData)) {
+                    const sortedApps = [...appsData].sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()).slice(0, 5);
+                    const activity = sortedApps.map((app: any) => ({
+                        id: app.id,
+                        type: 'APPLICATION',
+                        user: app.candidate?.name || 'A candidate',
+                        role: app.job?.title || 'a job',
+                        time: new Date(app.appliedAt).toLocaleDateString()
+                    }));
+                    setRecentActivity(activity);
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch dashboard data", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="animate-spin text-blue-500" size={40} />
+            </div>
+        );
+    }
+
     return (
         <div className="dashboard-page-content">
             {/* Header Section */}
@@ -19,7 +89,7 @@ export default function CompanyDashboardPage() {
                 </Link>
             </header>
 
-            {/* Stats Grid - 4 Columns */}
+            {/* Stats Grid */}
             <div className="stats-grid">
                 {/* Active Jobs */}
                 <div className="stat-card">
@@ -29,7 +99,7 @@ export default function CompanyDashboardPage() {
                         </div>
                     </div>
                     <div className="stat-content">
-                        <span className="stat-value">3</span>
+                        <span className="stat-value">{stats.activeJobs}</span>
                         <span className="stat-label">Active Jobs</span>
                     </div>
                     <div className="stat-footer">
@@ -47,7 +117,7 @@ export default function CompanyDashboardPage() {
                         </div>
                     </div>
                     <div className="stat-content">
-                        <span className="stat-value">12</span>
+                        <span className="stat-value">{stats.totalCandidates}</span>
                         <span className="stat-label">Total Candidates</span>
                     </div>
                     <div className="stat-footer">
@@ -65,7 +135,7 @@ export default function CompanyDashboardPage() {
                         </div>
                     </div>
                     <div className="stat-content">
-                        <span className="stat-value">48</span>
+                        <span className="stat-value">{stats.totalApplications}</span>
                         <span className="stat-label">Applications</span>
                     </div>
                     <div className="stat-footer">
@@ -83,11 +153,11 @@ export default function CompanyDashboardPage() {
                         </div>
                     </div>
                     <div className="stat-content">
-                        <span className="stat-value">5</span>
+                        <span className="stat-value">{stats.interviews}</span>
                         <span className="stat-label">Interviews</span>
                     </div>
                     <div className="stat-footer">
-                        <Link href="#" className="stat-link">
+                        <Link href="/dashboard/company/candidates" className="stat-link">
                             View Schedule
                         </Link>
                     </div>
@@ -99,53 +169,30 @@ export default function CompanyDashboardPage() {
                 <div className="activity-section">
                     <div className="activity-header">
                         <h3 className="section-heading-text">Recent Activity</h3>
-                        <Link href="#" className="stat-link">View All</Link>
                     </div>
 
                     <div className="activity-list">
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Users size={20} />
+                        {recentActivity.length > 0 ? (
+                            recentActivity.map((item) => (
+                                <div key={item.id} className="activity-item">
+                                    <div className="activity-avatar">
+                                        <Users size={20} />
+                                    </div>
+                                    <div className="activity-content">
+                                        <p><strong>{item.user}</strong> applied for <strong>{item.role}</strong></p>
+                                        <span className="activity-time">{item.time}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8 text-gray-500">
+                                No recent activity
                             </div>
-                            <div className="activity-content">
-                                <p><strong>John Doe</strong> applied for <strong>Senior React Developer</strong></p>
-                                <span className="activity-time">2 hours ago</span>
-                            </div>
-                        </div>
-
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Briefcase size={20} />
-                            </div>
-                            <div className="activity-content">
-                                <p>You posted a new job: <strong>Product Designer</strong></p>
-                                <span className="activity-time">5 hours ago</span>
-                            </div>
-                        </div>
-
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Users size={20} />
-                            </div>
-                            <div className="activity-content">
-                                <p><strong>Sarah Smith</strong> was moved to <strong>Interview</strong> for Backend Engineer</p>
-                                <span className="activity-time">1 day ago</span>
-                            </div>
-                        </div>
-
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Zap size={20} />
-                            </div>
-                            <div className="activity-content">
-                                <p>Your company profile was successfully verified</p>
-                                <span className="activity-time">2 days ago</span>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Sidebar Widgets */}
+                {/* Sidebar Widgets - cleaned up */}
                 <div className="dashboard-sidebar-col">
                     {/* Promo Widget */}
                     <div className="sidebar-widget promo-widget">
@@ -154,25 +201,6 @@ export default function CompanyDashboardPage() {
                         <button className="promo-btn">
                             Promote a Job
                         </button>
-                    </div>
-
-                    {/* Pending Tasks */}
-                    <div className="sidebar-widget">
-                        <h3 className="widget-header">Pending Tasks</h3>
-                        <div className="task-list">
-                            <div className="task-item">
-                                <div className="task-icon orange"></div>
-                                <span>Review 5 new applications for <strong>React Dev</strong></span>
-                            </div>
-                            <div className="task-item">
-                                <div className="task-icon gray"></div>
-                                <span>Complete company profile setup</span>
-                            </div>
-                            <div className="task-item">
-                                <div className="task-icon gray"></div>
-                                <span>Schedule interview with <strong>Mike Ross</strong></span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

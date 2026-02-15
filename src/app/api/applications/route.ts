@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
-// Direct instantiation for debugging
-const prisma = new PrismaClient();
-
+/**
+ * POST /api/applications
+ * Submit a job application
+ * 🔒 SECURITY: Verifies job exists and is ACTIVE
+ * 🔒 SECURITY: Gets companyId from job (not from request body)
+ */
 export async function POST(req: Request) {
-    console.log('[API] POST / api/applications - Request received');
+    console.log('[API] POST /api/applications - Request received');
 
     try {
+        // 1. Authentication check
         const { userId } = await auth();
         console.log('[API] User ID from auth:', userId);
 
@@ -17,69 +21,82 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // 2. Parse request body
         const body = await req.json();
-        console.log("[API] Request body:", JSON.stringify(body, null, 2));
+        console.log("[API] Request body received");
 
         const { jobId, resumeUrl, motivation, currentCTC, expectedCTC, noticePeriod, city } = body;
 
-        // Validate required fields
+        // 3. Validate required fields
         if (!jobId || !resumeUrl) {
             console.log('[API] Missing required fields:', { jobId, resumeUrl });
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        console.log('[API] Attempting to create application...');
+        console.log('[API] Attempting to create application for jobId:', jobId);
 
-        // Try to create the application directly without checking if job exists first
-        try {
-            const application = await prisma.application.create({
-                data: {
-                    job: {
-                        connectOrCreate: {
-                            where: { id: jobId },
-                            create: {
-                                id: jobId,
-                                title: "Sample Job",
-                                company: "Sample Company",
-                                location: "Remote",
-                                description: "Auto-generated placeholder job",
-                                employmentType: "Full Time",
-                                category: "Engineering",
-                                skills: [],
-                            }
-                        }
-                    },
-                    candidateId: userId,
-                    resumeUrl: resumeUrl,
-                    motivation: motivation ? JSON.stringify(motivation) : null,
-                    currentCTC: currentCTC || null,
-                    expectedCTC: expectedCTC || null,
-                    noticePeriod: noticePeriod || null,
-                    city: city || null,
-                    status: "APPLIED"
-                }
-            });
+        // 4. 🔒 SECURITY: Verify job exists and is ACTIVE
+        const job = await prisma.job.findUnique({
+            where: { id: jobId },
+            select: {
+                id: true,
+                companyId: true,
+                status: true,
+                title: true,
+            }
+        });
 
-            console.log('[API] Application created successfully:', application.id);
-            return NextResponse.json(application, { status: 201 });
-
-        } catch (prismaError: any) {
-            console.error('[API] Prisma error:', {
-                message: prismaError.message,
-                code: prismaError.code,
-                meta: prismaError.meta,
-                stack: prismaError.stack
-            });
-
+        if (!job) {
+            console.log('[API] Job not found:', jobId);
             return NextResponse.json({
-                error: "Database error",
-                details: prismaError.message,
-                code: prismaError.code
-            }, { status: 500 });
+                error: "Job not found"
+            }, { status: 404 });
         }
 
+        // 🔒 SECURITY: Only allow applications to ACTIVE jobs
+        if (job.status !== 'ACTIVE') {
+            console.log('[API] Job is not accepting applications. Status:', job.status);
+            return NextResponse.json({
+                error: `This job is not accepting applications (Status: ${job.status})`
+            }, { status: 400 });
+        }
+
+        // 5. Check if user already applied to this job
+        const existingApplication = await prisma.application.findFirst({
+            where: {
+                jobId: jobId,
+                candidateId: userId
+            }
+        });
+
+        if (existingApplication) {
+            console.log('[API] User already applied to this job');
+            return NextResponse.json({
+                error: "You have already applied to this job"
+            }, { status: 400 });
+        }
+
+        // 6. 🔒 SECURITY: Create application with companyId from job
+        const application = await prisma.application.create({
+            data: {
+                jobId: jobId,
+                candidateId: userId,
+                companyId: job.companyId,  // ✅ Get from job, NOT from request body
+                resumeUrl: resumeUrl,
+                motivation: motivation ? JSON.stringify(motivation) : null,
+                currentCTC: currentCTC || null,
+                expectedCTC: expectedCTC || null,
+                noticePeriod: noticePeriod || null,
+                city: city || null,
+                status: "APPLIED"
+            }
+        });
+
+        console.log('[API] Application created successfully:', application.id);
+        return NextResponse.json(application, { status: 201 });
+
     } catch (error: any) {
-        console.error("[API] Unexpected error in POST /api/applications:", {
+        console.error('[API] Error in POST /api/applications:', {
             message: error.message,
             stack: error.stack,
             name: error.name
@@ -93,6 +110,10 @@ export async function POST(req: Request) {
     }
 }
 
+/**
+ * GET /api/applications
+ * Get all applications for the authenticated candidate
+ */
 export async function GET(req: Request) {
     console.log('[API] GET /api/applications - Request received');
 
@@ -105,7 +126,20 @@ export async function GET(req: Request) {
 
         const applications = await prisma.application.findMany({
             where: { candidateId: userId },
-            include: { job: true },
+            include: {
+                job: {
+                    select: {
+                        id: true,
+                        title: true,
+                        company: true,
+                        location: true,
+                        employmentType: true,
+                        category: true,
+                        salary: true,
+                        currency: true,
+                    }
+                }
+            },
             orderBy: { appliedAt: 'desc' }
         });
 

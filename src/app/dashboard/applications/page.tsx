@@ -7,26 +7,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Mock data for applications
-const mockApplications = [
-    {
-        id: "app_1",
-        jobTitle: "Senior Full Stack Engineer",
-        company: "TechNova Solutions",
-        appliedDate: "2026-02-10",
-        status: "Applied",
-        logo: "TN"
-    },
-    {
-        id: "app_2",
-        jobTitle: "Frontend Developer",
-        company: "Innovation Hub",
-        appliedDate: "2026-02-08",
-        status: "Interview",
-        logo: "IH"
-    }
-];
-
 const getStatusBadge = (status: string) => {
     const badgeStyle = {
         display: 'inline-flex',
@@ -35,16 +15,17 @@ const getStatusBadge = (status: string) => {
         whiteSpace: 'nowrap' as const
     };
 
-    switch (status) {
-        case 'Applied':
+    // Normalize for consistent checking if needed, or just handle cases.
+    switch (status?.toUpperCase()) {
+        case 'APPLIED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#eff6ff', color: '#3b82f6' }}><Clock size={14} style={{ flexShrink: 0 }} /> <span>Applied</span></span>;
-        case 'Shortlisted':
+        case 'SHORTLISTED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#ecfdf5', color: '#10b981' }}><UserCheck size={14} style={{ flexShrink: 0 }} /> <span>Shortlisted</span></span>;
-        case 'Interview':
+        case 'INTERVIEW':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#fff7ed', color: '#f97316' }}><Clock size={14} style={{ flexShrink: 0 }} /> <span>Interview</span></span>;
-        case 'Rejected':
+        case 'REJECTED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#fef2f2', color: '#ef4444' }}><XCircle size={14} style={{ flexShrink: 0 }} /> <span>Rejected</span></span>;
-        case 'Hired':
+        case 'HIRED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#ecfdf5', color: '#10b981' }}><CheckCircle size={14} style={{ flexShrink: 0 }} /> <span>Hired</span></span>;
         default:
             return <span className="tag" style={badgeStyle}>{status}</span>;
@@ -53,16 +34,59 @@ const getStatusBadge = (status: string) => {
 
 export default function ApplicationsPage() {
     const [applications, setApplications] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        const saved = localStorage.getItem('user_applications');
-        if (saved) {
-            setApplications(JSON.parse(saved));
-        } else {
-            // Fallback to mock only if nothing in local storage
-            setApplications(mockApplications);
-        }
+        const fetchApplications = async () => {
+            try {
+                const res = await fetch('/api/applications', { cache: 'no-store' });
+                if (!res.ok) throw new Error('Failed to fetch applications');
+
+                const data = await res.json();
+
+                const mappedApps = data.map((app: any) => ({
+                    id: app.id,
+                    jobTitle: app.job.title,
+                    company: app.job.company,
+                    appliedDate: app.appliedAt,
+                    status: app.status, // e.g. "APPLIED" -> need to handle casing in UI or helper
+                    logo: app.job.company.substring(0, 2).toUpperCase()
+                }));
+
+                setApplications(mappedApps);
+            } catch (err: any) {
+                console.error(err);
+                setError('Failed to load applications');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchApplications();
     }, []);
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '64px' }}>
+                <div className="animate-spin text-blue-500">Loading...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 text-center text-red-500">
+                <p>{error}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div>

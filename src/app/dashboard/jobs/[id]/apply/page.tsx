@@ -4,35 +4,33 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
     Briefcase, MapPin, DollarSign, UploadCloud,
-    ChevronLeft, CheckCircle, FileText, Globe
+    ChevronLeft, CheckCircle, FileText, Loader2
 } from 'lucide-react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 
-const Editor = dynamic(() => import('@/components/Editor'), { ssr: false });
-
-// Mock data for initial implementation
-const mockJobs = [
-    {
-        id: "1",
-        title: "Senior Full Stack Engineer",
-        company: "TechNova Solutions",
-        description: "We are looking for an experienced Full Stack Engineer to lead our core product team. You will be responsible for designing and implementing scalable web applications, mentoring junior developers, and collaborating cross-functional teams to deliver high-quality software solutions.\n\nRequirements:\n- 5+ years of experience with React and Node.js\n- Strong understanding of system architecture\n- Experience with AWS and DevOps practices\n- Excellent communication skills",
-        employmentType: "Full Time",
-        location: "Remote",
-        salary: "120,000 - 150,000",
-        currency: "USD"
-    }
-];
+type Job = {
+    id: string;
+    title: string;
+    company: string;
+    description: string;
+    employmentType: string;
+    location: string;
+    salary: string;
+    currency: string;
+};
 
 export default function ApplyPage() {
     const params = useParams();
     const router = useRouter();
-    const [job, setJob] = useState(mockJobs[0]); // Fallback to mock
+
+    // State
+    const [job, setJob] = useState<Job | null>(null);
+    const [isFetching, setIsFetching] = useState(true);
     const [isSubmitted, setIsSubmitted] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [resume, setResume] = useState<File | null>(null);
-    const [motivationData, setMotivationData] = useState<any>(null);
+    const [motivationData, setMotivationData] = useState<string>('');
+    const [fetchError, setFetchError] = useState('');
 
     // Form data
     const [formData, setFormData] = useState({
@@ -41,6 +39,66 @@ export default function ApplyPage() {
         noticePeriod: 'Immediate',
         city: '',
     });
+
+    // Fetch Job Data
+    useEffect(() => {
+        const fetchJob = async () => {
+            if (!params?.id) return;
+
+            const jobId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+            try {
+                // In a real scenario, you might have a dedicated endpoint for single job details
+                // If /api/jobs returns a list, we might need to filter or fetch a specific one
+                // Given previous context, let's assume we can fetch specific job or we fetch list and find.
+                // Ideally: fetch(`/api/jobs/${jobId}`)
+
+                // Let's rely on the public jobs API. If it doesn't support ID, we might need to update it. 
+                // However, usually REST APIs support /api/jobs/:id.
+                // Let's try to fetch all and find, OR if we made a specific endpoint. 
+                // Looking at previous interactions, we haven't explicitly seen /api/jobs/[id] GET for public.
+                // But typically it should be there. Let's try to fetch it.
+                // If it fails, we will fallback to fetching all and filtering (backup plan).
+
+                // Let's try fetching the specific job directly if the endpoint exists, 
+                // otherwise we might need to use the 'GET /api/jobs' and filter.
+                // Safest bet without checking backend code right now: Try specific known pattern first.
+
+                const res = await fetch(`/api/jobs/${jobId}`, { cache: 'no-store' });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) {
+                        setJob(data);
+                    } else {
+                        setFetchError('Job not found');
+                    }
+                } else {
+                    // Fallback: This might occur if the specific ID route isn't implemented for GET public
+                    // Let's try fetching all active jobs and filtering (not efficient but works for MVP)
+                    const resAll = await fetch('/api/jobs');
+                    if (resAll.ok) {
+                        const allJobs: Job[] = await resAll.json();
+                        const foundJob = allJobs.find(j => j.id === jobId);
+                        if (foundJob) {
+                            setJob(foundJob);
+                        } else {
+                            setFetchError('Job not found or not active');
+                        }
+                    } else {
+                        throw new Error('Failed to load job details');
+                    }
+                }
+            } catch (err: any) {
+                console.error("Error fetching job:", err);
+                setFetchError('Failed to load job details. Please try again.');
+            } finally {
+                setIsFetching(false);
+            }
+        };
+
+        fetchJob();
+    }, [params?.id]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -55,7 +113,15 @@ export default function ApplyPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsLoading(true);
+
+        if (!params?.id) {
+            alert("Invalid Job URL");
+            return;
+        }
+
+        const jobId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+        setIsSubmitting(true);
 
         try {
             // In a real app, we would upload the file to S3 first and get a URL
@@ -65,7 +131,7 @@ export default function ApplyPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    jobId: params.id,
+                    jobId: jobId,
                     resumeUrl: "mock_resume_url.pdf", // placeholder
                     motivation: motivationData,
                     ...formData
@@ -75,35 +141,61 @@ export default function ApplyPage() {
             if (response.ok) {
                 // Update local storage for demo purposes (Applied state on Jobs list)
                 const applied = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
-                if (!applied.includes(params.id)) {
-                    applied.push(params.id);
+                if (!applied.includes(jobId)) {
+                    applied.push(jobId);
                     localStorage.setItem('applied_jobs', JSON.stringify(applied));
                 }
 
                 // Also update the detailed applications list for the demo
                 const fullApps = JSON.parse(localStorage.getItem('user_applications') || '[]');
-                fullApps.push({
+                const newApp = {
                     id: Math.random().toString(36).substr(2, 9),
-                    jobId: params.id,
-                    jobTitle: job.title,
-                    company: job.company,
+                    jobId: jobId,
+                    jobTitle: job?.title || 'Unknown Role',
+                    company: job?.company || 'Unknown Company',
                     appliedAt: new Date().toISOString(),
                     status: "Applied",
-                    logo: job.company.substring(0, 2).toUpperCase()
-                });
+                    logo: job?.company ? job.company.substring(0, 2).toUpperCase() : '??'
+                };
+
+                fullApps.push(newApp);
                 localStorage.setItem('user_applications', JSON.stringify(fullApps));
 
                 setIsSubmitted(true);
             } else {
-                alert("Failed to submit application. Please try again.");
+                const errorData = await response.json();
+                alert(errorData.error || "Failed to submit application. Please try again.");
             }
         } catch (error) {
             console.error("Submission failed:", error);
             alert("Something went wrong.");
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
+
+    if (isFetching) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="animate-spin text-blue-500" size={40} />
+            </div>
+        );
+    }
+
+    if (fetchError || !job) {
+        return (
+            <div className="p-12 text-center">
+                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-500">
+                    <Briefcase size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-gray-800 mb-2">Job Not Found</h2>
+                <p className="text-gray-600 mb-6">{fetchError || "The job you are applying for is no longer available."}</p>
+                <Link href="/dashboard/jobs" className="btn-primary inline-flex items-center gap-2">
+                    <ChevronLeft size={18} /> Back to Jobs
+                </Link>
+            </div>
+        );
+    }
 
     if (isSubmitted) {
         return (
@@ -192,9 +284,12 @@ export default function ApplyPage() {
 
                             <div className="form-group">
                                 <label className="form-label">Motivation Letter / Why you?</label>
-                                <Editor
+                                <textarea
+                                    className="form-input"
+                                    rows={6}
                                     placeholder="Tell us why you're a great fit..."
-                                    onChange={(data) => setMotivationData(data)}
+                                    onChange={(e) => setMotivationData(e.target.value)}
+                                    value={motivationData || ''}
                                 />
                             </div>
 
@@ -258,9 +353,9 @@ export default function ApplyPage() {
                                 type="submit"
                                 className="btn-primary"
                                 style={{ width: '100%', marginTop: '16px' }}
-                                disabled={isLoading}
+                                disabled={isSubmitting}
                             >
-                                {isLoading ? "Submitting..." : "Complete Submission"}
+                                {isSubmitting ? "Submitting..." : "Complete Submission"}
                             </button>
                         </form>
                     </div>
