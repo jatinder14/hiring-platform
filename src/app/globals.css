@@ -969,3 +969,146 @@ body.tree-exit .tree-layer {
     animation: none
   }
 }
+
+/* Auth / Login page */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 36px;
+  border-radius: 24px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 255, 230, 0.06);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  text-decoration: none;
+}
+
+.auth-logo-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 255, 230, 0.25), rgba(80, 120, 255, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 30px rgba(0, 255, 230, 0.15);
+}
+
+.auth-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.auth-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.auth-providers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.auth-provider-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.auth-provider-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.auth-provider-btn:focus-visible {
+  outline: 2px solid rgba(0, 255, 230, 0.9);
+  outline-offset: 3px;
+}
+
+.auth-provider-btn.google:hover {
+  border-color: rgba(66, 133, 244, 0.5);
+  background: rgba(66, 133, 244, 0.12);
+}
+
+.auth-provider-btn.linkedin:hover {
+  border-color: rgba(10, 102, 194, 0.5);
+  background: rgba(10, 102, 194, 0.12);
+}
+
+.auth-provider-btn.github:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.auth-provider-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.auth-footer {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  margin: 0 0 20px;
+  line-height: 1.4;
+}
+
+.auth-back {
+  display: block;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(0, 255, 230, 0.95);
+  text-decoration: none;
+  transition: color .2s ease;
+}
+
+.auth-back:hover {
+  color: rgba(0, 255, 230, 1);
+}
+
+.auth-back:focus-visible {
+  outline: 2px solid rgba(0, 255, 230, 0.9);
+  outline-offset: 3px;
+}
