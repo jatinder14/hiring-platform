@@ -1,108 +1,212 @@
 'use client';
 
-import Link from 'next/link';
-import { Download, CheckCircle, XCircle, MoreVertical, Briefcase, User, Mail, FileText } from 'lucide-react';
 import { useState } from 'react';
+import {
+    Users,
+    Search,
+    Filter,
+    MoreHorizontal,
+    Mail,
+    Calendar,
+    ChevronRight,
+    Star,
+    ArrowUpRight,
+    UserX
+} from 'lucide-react';
+import Link from 'next/link';
 
-const APPLICATIONS = [
-    { id: 1, name: "John Doe", job: "Senior React Developer", email: "john@example.com", status: "Applied", applied: "1 hour ago", resume: "#" },
-    { id: 2, name: "Jane Smith", job: "Senior React Developer", email: "jane@example.com", status: "Interview", applied: "2 days ago", resume: "#" },
-    { id: 3, name: "Mike Johnson", job: "Product Designer", email: "mike@example.com", status: "Rejected", applied: "3 days ago", resume: "#" },
-    { id: 4, name: "Sarah Lee", job: "Backend Engineer", email: "sarah@example.com", status: "Hired", applied: "1 week ago", resume: "#" },
-];
-
-const STATUS_COLORS: Record<string, string> = {
-    'Applied': 'bg-blue-100 text-blue-700',
-    'Interview': 'bg-purple-100 text-purple-700',
-    'Shortlisted': 'bg-yellow-100 text-yellow-700',
-    'Hired': 'bg-green-100 text-green-700',
-    'Rejected': 'bg-red-100 text-red-700',
+type Candidate = {
+    id: string;
+    name: string;
+    role: string;
+    jobApplied: string;
+    status: 'New' | 'Interview' | 'Offered' | 'Rejected';
+    experience: string;
+    matchScore: number;
+    avatar?: string;
 };
 
-export default function CandidatesPage() {
-    const [filter, setFilter] = useState('All');
+const MOCK_CANDIDATES: Candidate[] = [
+    {
+        id: '1',
+        name: 'Alex Johnson',
+        role: 'Senior React Developer',
+        jobApplied: 'Senior Frontend Engineer',
+        status: 'Interview',
+        experience: '6 years',
+        matchScore: 94
+    },
+    {
+        id: '2',
+        name: 'Sarah Mills',
+        role: 'Product Designer',
+        jobApplied: 'Product Designer',
+        status: 'New',
+        experience: '4 years',
+        matchScore: 88
+    },
+    {
+        id: '3',
+        name: 'Michael Chen',
+        role: 'Backend Developer',
+        jobApplied: 'Backend Engineer (Node.js)',
+        status: 'Offered',
+        experience: '8 years',
+        matchScore: 91
+    }
+];
+
+export default function CompanyCandidatesPage() {
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredCandidates = MOCK_CANDIDATES.filter(c =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.role.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
-        <div className="p-6">
-            <header className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Candidates</h1>
-                    <p className="text-gray-500 mt-1">Review and manage job applications.</p>
+        <div className="dashboard-page-content">
+            {/* Header */}
+            <header className="page-header">
+                <div className="page-header-content">
+                    <h1 className="page-title">Manage Talent</h1>
+                    <p className="page-subtitle">Track and evaluate candidates in your pipeline.</p>
                 </div>
             </header>
 
-            {/* Filter Tabs */}
-            <div className="flex gap-4 mb-6 border-b border-gray-200 pb-2">
-                {['All', 'Applied', 'Interview', 'Hired', 'Rejected'].map((status) => (
-                    <button
-                        key={status}
-                        onClick={() => setFilter(status)}
-                        className={`text-sm font-medium pb-2 border-b-2 transition
-                            ${filter === status ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}
-                        `}
-                    >
-                        {status}
+            {/* Controls */}
+            <div className="card" style={{ padding: '16px 24px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="input-wrapper" style={{ flex: 1, minWidth: '280px' }}>
+                        <Search size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search candidates by name, role..."
+                            className="form-input"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <button className="btn-secondary" style={{ display: 'flex', gap: '8px', padding: '0 20px' }}>
+                        <Filter size={18} />
+                        Filters
                     </button>
-                ))}
+                </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Candidate</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Applying For</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Resume</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {APPLICATIONS.filter(app => filter === 'All' || app.status === filter).map((app) => (
-                            <tr key={app.id} className="hover:bg-gray-50 transition">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-sm">
-                                            {app.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-gray-900">{app.name}</p>
-                                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                                                <Mail size={12} /> {app.email}
-                                            </div>
-                                        </div>
+            {/* Candidates Table/List */}
+            <div className="candidates-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {filteredCandidates.length > 0 ? (
+                    filteredCandidates.map((candidate) => (
+                        <div key={candidate.id} className="card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e5e7eb' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                <div style={{
+                                    width: '52px',
+                                    height: '52px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#eff6ff',
+                                    color: '#3b82f6',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: '700',
+                                    fontSize: '18px'
+                                }}>
+                                    {candidate.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: 0 }}>{candidate.name}</h3>
+                                        <span style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontSize: '11px',
+                                            fontWeight: '700',
+                                            color: '#f59e0b',
+                                            backgroundColor: '#fffbeb',
+                                            padding: '2px 8px',
+                                            borderRadius: '99px'
+                                        }}>
+                                            <Star size={10} fill="#f59e0b" /> {candidate.matchScore}% Match
+                                        </span>
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm">
-                                        <p className="font-medium text-gray-900">{app.job}</p>
-                                        <p className="text-gray-500 text-xs">Applied {app.applied}</p>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[app.status] || 'bg-gray-100 text-gray-700'}`}>
-                                        {app.status}
+                                    <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>{candidate.role} • {candidate.experience}</p>
+                                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Applied for <span style={{ color: '#4b5563', fontWeight: '600' }}>{candidate.jobApplied}</span></p>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span style={{
+                                        padding: '4px 12px',
+                                        borderRadius: '99px',
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        backgroundColor: candidate.status === 'Interview' ? '#eff6ff' : candidate.status === 'Offered' ? '#ecfdf5' : '#f3f4f6',
+                                        color: candidate.status === 'Interview' ? '#3b82f6' : candidate.status === 'Offered' ? '#10b981' : '#6b7280'
+                                    }}>
+                                        {candidate.status}
                                     </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <a href={app.resume} className="flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium">
-                                        <Download size={16} /> Resume
-                                    </a>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Accept/Interview">
-                                            <CheckCircle size={18} />
-                                        </button>
-                                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Reject">
-                                            <XCircle size={18} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #e5e7eb',
+                                        backgroundColor: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#6b7280',
+                                        cursor: 'pointer'
+                                    }}>
+                                        <Mail size={16} />
+                                    </button>
+                                    <button style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #e5e7eb',
+                                        backgroundColor: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#6b7280',
+                                        cursor: 'pointer'
+                                    }}>
+                                        <Calendar size={16} />
+                                    </button>
+                                    <Link href={`#`} style={{
+                                        textDecoration: 'none',
+                                        padding: '8px 16px',
+                                        borderRadius: '10px',
+                                        backgroundColor: '#3b82f6',
+                                        color: 'white',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        Profile <ArrowUpRight size={14} />
+                                    </Link>
+                                </div>
+                                <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                                    <MoreHorizontal size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+                        <UserX size={48} strokeWidth={1.5} style={{ margin: '0 auto', color: '#9ca3af', marginBottom: '16px' }} />
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>No candidates found</h3>
+                        <p style={{ color: '#6b7280' }}>Try changing your search query or filters.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

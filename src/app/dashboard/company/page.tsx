@@ -1,14 +1,14 @@
 import Link from 'next/link';
-import { Plus, Briefcase, Users, Clock, ChevronRight, Activity, Zap } from 'lucide-react';
+import { Plus, Briefcase, Users, Clock, ChevronRight, Activity, Zap, FileText } from 'lucide-react';
 
 export default function CompanyDashboardPage() {
     return (
-        <div className="dashboard-container">
+        <div className="dashboard-page-content">
             {/* Header Section */}
             <header className="page-header">
                 <div className="page-header-content">
                     <h1 className="page-title">Company Dashboard</h1>
-                    <p className="page-subtitle">Overview of your hiring pipeline and activity.</p>
+                    <p className="page-subtitle">Welcome back! Here's what's happening today.</p>
                 </div>
                 <Link
                     href="/dashboard/company/create-job"
@@ -19,9 +19,9 @@ export default function CompanyDashboardPage() {
                 </Link>
             </header>
 
-            {/* Stats Grid */}
+            {/* Stats Grid - 4 Columns */}
             <div className="stats-grid">
-                {/* Active Jobs Card */}
+                {/* Active Jobs */}
                 <div className="stat-card">
                     <div className="stat-header">
                         <div className="stat-icon blue">
@@ -34,12 +34,12 @@ export default function CompanyDashboardPage() {
                     </div>
                     <div className="stat-footer">
                         <Link href="/dashboard/company/jobs" className="stat-link">
-                            View all jobs <ChevronRight size={14} />
+                            View Jobs
                         </Link>
                     </div>
                 </div>
 
-                {/* Candidates Card */}
+                {/* Total Candidates */}
                 <div className="stat-card">
                     <div className="stat-header">
                         <div className="stat-icon purple">
@@ -52,12 +52,30 @@ export default function CompanyDashboardPage() {
                     </div>
                     <div className="stat-footer">
                         <Link href="/dashboard/company/candidates" className="stat-link">
-                            View applications <ChevronRight size={14} />
+                            View Talent
                         </Link>
                     </div>
                 </div>
 
-                {/* Interviews Card */}
+                {/* Total Applications */}
+                <div className="stat-card">
+                    <div className="stat-header">
+                        <div className="stat-icon blue">
+                            <FileText size={22} />
+                        </div>
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">48</span>
+                        <span className="stat-label">Applications</span>
+                    </div>
+                    <div className="stat-footer">
+                        <Link href="/dashboard/company/candidates" className="stat-link">
+                            Review All
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Interviews */}
                 <div className="stat-card">
                     <div className="stat-header">
                         <div className="stat-icon orange">
@@ -66,11 +84,11 @@ export default function CompanyDashboardPage() {
                     </div>
                     <div className="stat-content">
                         <span className="stat-value">5</span>
-                        <span className="stat-label">Upcoming Interviews</span>
+                        <span className="stat-label">Interviews</span>
                     </div>
                     <div className="stat-footer">
                         <Link href="#" className="stat-link">
-                            View schedule <ChevronRight size={14} />
+                            View Schedule
                         </Link>
                     </div>
                 </div>
@@ -81,13 +99,13 @@ export default function CompanyDashboardPage() {
                 <div className="activity-section">
                     <div className="activity-header">
                         <h3 className="section-heading-text">Recent Activity</h3>
-                        <button className="view-all-btn">View All</button>
+                        <Link href="#" className="stat-link">View All</Link>
                     </div>
 
                     <div className="activity-list">
                         <div className="activity-item">
                             <div className="activity-avatar">
-                                <Users size={18} />
+                                <Users size={20} />
                             </div>
                             <div className="activity-content">
                                 <p><strong>John Doe</strong> applied for <strong>Senior React Developer</strong></p>
@@ -97,30 +115,30 @@ export default function CompanyDashboardPage() {
 
                         <div className="activity-item">
                             <div className="activity-avatar">
-                                <Briefcase size={18} />
+                                <Briefcase size={20} />
                             </div>
                             <div className="activity-content">
-                                <p>New job posted: <strong>Product Designer</strong></p>
+                                <p>You posted a new job: <strong>Product Designer</strong></p>
                                 <span className="activity-time">5 hours ago</span>
                             </div>
                         </div>
 
                         <div className="activity-item">
                             <div className="activity-avatar">
-                                <Users size={18} />
+                                <Users size={20} />
                             </div>
                             <div className="activity-content">
-                                <p><strong>Sarah Smith</strong> applied for <strong>Backend Engineer</strong></p>
+                                <p><strong>Sarah Smith</strong> was moved to <strong>Interview</strong> for Backend Engineer</p>
                                 <span className="activity-time">1 day ago</span>
                             </div>
                         </div>
 
                         <div className="activity-item">
                             <div className="activity-avatar">
-                                <Activity size={18} />
+                                <Zap size={20} />
                             </div>
                             <div className="activity-content">
-                                <p>Your company profile was updated</p>
+                                <p>Your company profile was successfully verified</p>
                                 <span className="activity-time">2 days ago</span>
                             </div>
                         </div>
@@ -132,9 +150,9 @@ export default function CompanyDashboardPage() {
                     {/* Promo Widget */}
                     <div className="sidebar-widget promo-widget">
                         <h3 className="promo-title">Boost your reach</h3>
-                        <p className="promo-desc">Post your job to featured listings to get 3x more applicants.</p>
+                        <p className="promo-desc">Get 3x more applicants by promoting your open roles to featured listings.</p>
                         <button className="promo-btn">
-                            Promote Job
+                            Promote a Job
                         </button>
                     </div>
 

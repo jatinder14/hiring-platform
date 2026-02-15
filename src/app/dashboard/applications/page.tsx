@@ -75,8 +75,8 @@ export default function ApplicationsPage() {
                 <div className="applications-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {applications.map((app) => (
                         <div key={app.id} className="job-card" style={{ padding: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', width: '100%', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div className="application-card-content">
+                                <div className="application-info">
                                     <div style={{
                                         width: '48px',
                                         height: '48px',
@@ -87,20 +87,21 @@ export default function ApplicationsPage() {
                                         justifyContent: 'center',
                                         fontSize: '18px',
                                         fontWeight: '700',
-                                        color: '#3b82f6'
+                                        color: '#3b82f6',
+                                        flexShrink: 0
                                     }}>
                                         {app.logo}
                                     </div>
                                     <div>
                                         <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.jobTitle}</h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px', flexWrap: 'wrap' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.company}</span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                <div className="application-actions">
                                     {getStatusBadge(app.status)}
                                     <div style={{ display: 'flex', gap: '12px' }}>
                                         <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>View Details</button>

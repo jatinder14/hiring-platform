@@ -14,7 +14,7 @@ const isDashboardRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, request) => {
     const { userId } = await auth();
-    const { pathname } = request.nextUrl;
+    // const { pathname } = request.nextUrl; // Unused but kept for structure
 
     // Protect dashboard routes - redirect to sign-in if not authenticated
     if (isDashboardRoute(request) && !userId) {

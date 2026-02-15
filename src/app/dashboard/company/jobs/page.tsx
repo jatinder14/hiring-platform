@@ -1,84 +1,201 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { MoreHorizontal, Edit, Trash2, Eye, FileText } from 'lucide-react';
+import {
+    Briefcase,
+    Plus,
+    Search,
+    MoreVertical,
+    MapPin,
+    Clock,
+    Users,
+    ChevronRight,
+    Filter,
+    ArrowUpRight,
+    SearchX
+} from 'lucide-react';
 
-const JOBS = [
-    { id: 1, title: "Senior React Developer", type: "Full-time", location: "Remote", applications: 12, status: "Active", date: "2 days ago" },
-    { id: 2, title: "Product Designer", type: "Contract", location: "New York, NY", applications: 5, status: "Draft", date: "1 week ago" },
-    { id: 3, title: "Backend Engineer", type: "Full-time", location: "London, UK", applications: 34, status: "Closed", date: "3 weeks ago" },
+type Job = {
+    id: string;
+    title: string;
+    location: string;
+    type: string;
+    applicants: number;
+    status: 'Active' | 'Closed' | 'Draft';
+    postedDate: string;
+};
+
+const MOCK_JOBS: Job[] = [
+    {
+        id: '1',
+        title: 'Senior Frontend Engineer',
+        location: 'Remote',
+        type: 'Full-time',
+        applicants: 12,
+        status: 'Active',
+        postedDate: '2 days ago'
+    },
+    {
+        id: '2',
+        title: 'Product Designer',
+        location: 'Hybrid, London',
+        type: 'Full-time',
+        applicants: 8,
+        status: 'Active',
+        postedDate: '5 hours ago'
+    },
+    {
+        id: '3',
+        title: 'Backend Engineer (Node.js)',
+        location: 'Onsite, San Francisco',
+        type: 'Contract',
+        applicants: 5,
+        status: 'Draft',
+        postedDate: 'Not published'
+    }
 ];
 
-export default function JobsPage() {
+export default function CompanyJobsPage() {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+
+    const filteredJobs = MOCK_JOBS.filter(job => {
+        const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            job.location.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = statusFilter === 'All' || job.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
     return (
-        <div className="p-6">
-            <header className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">My Jobs</h1>
-                    <p className="text-gray-500 mt-1">Manage your job postings and view applications.</p>
+        <div className="dashboard-page-content">
+            {/* Header */}
+            <header className="page-header">
+                <div className="page-header-content">
+                    <h1 className="page-title">Manage Jobs</h1>
+                    <p className="page-subtitle">Track, edit, and manage your open positions.</p>
                 </div>
-                <Link
-                    href="/dashboard/company/create-job"
-                    className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-md shadow-blue-100"
-                >
-                    + Post New Job
+                <Link href="/dashboard/company/create-job" className="btn-primary">
+                    <Plus size={18} />
+                    Post New Job
                 </Link>
             </header>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Job Title</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Applications</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Posted</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {JOBS.map((job) => (
-                            <tr key={job.id} className="hover:bg-gray-50 transition">
-                                <td className="px-6 py-4">
-                                    <div className="flex flex-col">
-                                        <span className="font-semibold text-gray-900">{job.title}</span>
-                                        <span className="text-sm text-gray-500">{job.type} • {job.location}</span>
+            {/* Filters & Search */}
+            <div className="card" style={{ padding: '16px 24px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="input-wrapper" style={{ flex: 2, minWidth: '280px' }}>
+                        <Search size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search by title or location..."
+                            className="form-input"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '200px' }}>
+                        <select
+                            className="form-input"
+                            style={{ paddingLeft: '12px' }}
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="All">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Draft">Draft</option>
+                        </select>
+
+                        <button className="btn-secondary" style={{ display: 'flex', gap: '8px', padding: '0 16px' }}>
+                            <Filter size={18} />
+                            Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Jobs List */}
+            <div className="jobs-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {filteredJobs.length > 0 ? (
+                    filteredJobs.map((job) => (
+                        <div key={job.id} className="card" style={{ padding: '24px', transition: 'all 0.2s ease', cursor: 'pointer', border: '1px solid #e5e7eb' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ display: 'flex', gap: '20px' }}>
+                                    <div style={{
+                                        width: '52px',
+                                        height: '52px',
+                                        borderRadius: '12px',
+                                        backgroundColor: '#f3f4f6',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#3b82f6'
+                                    }}>
+                                        <Briefcase size={24} />
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium 
-                                        ${job.status === 'Active' ? 'bg-green-100 text-green-700' :
-                                            job.status === 'Closed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                    <div>
+                                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '6px' }}>{job.title}</h3>
+                                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#6b7280' }}>
+                                                <MapPin size={14} /> {job.location}
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#6b7280' }}>
+                                                <Clock size={14} /> {job.type}
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#6b7280' }}>
+                                                <Users size={14} /> {job.applicants} Applicants
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <span style={{
+                                        padding: '4px 12px',
+                                        borderRadius: '99px',
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        backgroundColor: job.status === 'Active' ? '#ecfdf5' : job.status === 'Draft' ? '#f3f4f6' : '#fef2f2',
+                                        color: job.status === 'Active' ? '#10b981' : job.status === 'Draft' ? '#6b7280' : '#ef4444'
+                                    }}>
                                         {job.status}
                                     </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                        <FileText size={16} className="text-gray-400" />
-                                        <span className="font-medium">{job.applications}</span>
-                                        <span className="text-xs text-gray-400">candidates</span>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 text-sm text-gray-500">
-                                    {job.date}
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="View">
-                                            <Eye size={18} />
-                                        </button>
-                                        <button className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition" title="Edit">
-                                            <Edit size={18} />
-                                        </button>
-                                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                    <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                                        <MoreVertical size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <p style={{ fontSize: '13px', color: '#9ca3af' }}>Posted {job.postedDate}</p>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button className="view-all-btn" style={{ fontSize: '14px' }}>Edit Job</button>
+                                    <Link href={`/dashboard/company/jobs/${job.id}`} style={{
+                                        textDecoration: 'none',
+                                        color: '#3b82f6',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        View Pipeline <ArrowUpRight size={16} />
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '80px 24px' }}>
+                        <div style={{ marginBottom: '20px', color: '#9ca3af' }}>
+                            <SearchX size={48} strokeWidth={1.5} style={{ margin: '0 auto' }} />
+                        </div>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>No jobs found</h3>
+                        <p style={{ color: '#6b7280', maxWidth: '320px', margin: '0 auto' }}>
+                            We couldn't find any jobs matching your search parameters. Try adjusting your filters.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

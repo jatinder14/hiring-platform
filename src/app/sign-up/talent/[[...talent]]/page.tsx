@@ -1,7 +1,20 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { SignUp } from "@clerk/nextjs";
 import { AuthWrapper } from "@/components/AuthWrapper";
 
 export default function TalentSignUpPage() {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        return null;
+    }
+
     return (
         <AuthWrapper>
             <div style={{ width: '100%', maxWidth: '32rem' }}>
