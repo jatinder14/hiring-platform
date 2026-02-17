@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
     Briefcase, MapPin, DollarSign, UploadCloud,
-    ChevronLeft, CheckCircle, FileText, Loader2
+    ChevronLeft, CheckCircle, FileText, Loader2, Clock
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -17,8 +17,8 @@ type Job = {
     location: string;
     salary: string;
     currency: string;
-    experienceMin?: number;
-    experienceMax?: number;
+    experienceMin?: number | null;
+    experienceMax?: number | null;
 };
 
 const WORLD_CURRENCIES = [
@@ -290,11 +290,23 @@ export default function ApplyPage() {
                                     {job.currency === 'USD' ? <DollarSign size={16} /> : <Briefcase size={16} />}
                                     {job.salary} {job.currency && job.currency !== 'USD' ? job.currency : ''}
                                 </span>
-                                {(job.experienceMin !== undefined || job.experienceMax !== undefined) && (
-                                    <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                        {job.experienceMin}-{job.experienceMax} Years Experience
-                                    </span>
-                                )}
+                                {(job.experienceMin !== null && job.experienceMin !== undefined) ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        backgroundColor: '#fffbeb',
+                                        color: '#92400e',
+                                        padding: '4px 12px',
+                                        borderRadius: '8px',
+                                        fontSize: '13px',
+                                        fontWeight: '700',
+                                        border: '1px solid #fef3c7'
+                                    }}>
+                                        <Clock size={16} />
+                                        <span>Experience: {job.experienceMin}{job.experienceMax ? `–${job.experienceMax}` : '+'} years</span>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
 
@@ -339,7 +351,7 @@ export default function ApplyPage() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Motivation Letter / Why you?</label>
+                                <label className="form-label">Motivation Letter / Why you? (Optional)</label>
                                 <textarea
                                     className="form-input"
                                     rows={6}

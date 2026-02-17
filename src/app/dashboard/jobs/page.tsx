@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Briefcase, MapPin, DollarSign, CheckCircle, SlidersHorizontal, X, Loader2 } from 'lucide-react';
+import { Briefcase, MapPin, DollarSign, CheckCircle, SlidersHorizontal, X, Loader2, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 type Job = {
@@ -14,8 +14,8 @@ type Job = {
     salary: string;
     currency: string;
     skills: string[];
-    experienceMin?: number;
-    experienceMax?: number;
+    experienceMin?: number | null;
+    experienceMax?: number | null;
     createdAt: string;
 };
 
@@ -291,7 +291,7 @@ export default function JobsPage() {
                                                         {job.salary || "Competitive"} {job.currency && job.currency !== 'USD' ? job.currency : ''}
                                                     </span>
                                                 </div>
-                                                {(job.experienceMin !== undefined || job.experienceMax !== undefined) && (
+                                                {(job.experienceMin !== null && job.experienceMin !== undefined) ? (
                                                     <div style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -300,14 +300,15 @@ export default function JobsPage() {
                                                         color: '#92400e',
                                                         padding: '4px 10px',
                                                         borderRadius: '6px',
-                                                        fontSize: '12px',
-                                                        fontWeight: '600',
+                                                        fontSize: '13px',
+                                                        fontWeight: '700',
                                                         border: '1px solid #fef3c7',
                                                         whiteSpace: 'nowrap'
                                                     }}>
-                                                        <span>{job.experienceMin}-{job.experienceMax} Yrs Exp</span>
+                                                        <Clock size={16} />
+                                                        <span>Experience: {job.experienceMin}{job.experienceMax ? `–${job.experienceMax}` : '+'} years</span>
                                                     </div>
-                                                )}
+                                                ) : null}
                                             </div>
 
                                             {/* Description Truncated */}

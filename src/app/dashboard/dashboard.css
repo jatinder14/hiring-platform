@@ -1910,3 +1910,236 @@ img {
         gap: 20px;
     }
 }
+
+/* Form Footer Styles */
+.form-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px 32px;
+    border-top: 1px solid #f3f4f6;
+    background: #fcfdfe;
+    gap: 16px;
+}
+
+.form-footer .btn-back {
+    position: absolute;
+    left: 32px;
+}
+
+.form-footer button {
+    height: 48px;
+    min-width: 180px;
+    justify-content: center;
+}
+
+@media (max-width: 767px) {
+    .form-footer {
+        flex-direction: column-reverse;
+        padding: 24px 20px;
+        gap: 12px;
+    }
+
+    .form-footer .btn-back {
+        position: static;
+        width: 100%;
+    }
+
+    .form-footer button {
+        width: 100% !important;
+        height: 50px;
+    }
+}
+
+/* Manage Jobs Card Responsive Fixes */
+.manage-job-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+@media (max-width: 640px) {
+    .manage-job-meta {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+.compensation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+@media (max-width: 767px) {
+    .compensation-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .compensation-grid .form-group {
+        margin-bottom: 0px;
+        /* Let grid gap handle it */
+    }
+}
+
+.salary-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 0 12px;
+    height: 48px;
+    transition: all 0.2s;
+}
+
+.salary-input-group:focus-within {
+    border-color: #3b82f6;
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.salary-input-group .currency-symbol {
+    color: #9ca3af;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+.salary-input-group input {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    height: 100% !important;
+    width: 100%;
+    outline: none !important;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+/* Skills Section */
+.skills-outer-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.skills-chip-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.skill-chip {
+    display: inline-flex;
+    align-items: center;
+    background: #f0f7ff;
+    color: #3b82f6;
+    padding-left: 14px;
+    padding-right: 4px;
+    border-radius: 99px;
+    height: 38px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid #dbeafe;
+    transition: all 0.2s ease;
+}
+
+.skill-chip:hover {
+    background: #e0f0ff;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+}
+
+.skill-chip button {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+    margin-left: 6px;
+}
+
+.skill-chip button:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.skill-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background-color: #f9fafb;
+    height: 52px;
+    transition: all 0.2s;
+}
+
+.skill-search-bar:focus-within {
+    border-color: #3b82f6;
+    background-color: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.skill-search-bar input {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    width: 100%;
+    height: 100% !important;
+    font-size: 15px;
+}
+
+.skill-search-bar .btn-add-skill {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.skill-search-bar .btn-add-skill:hover {
+    background: #2563eb;
+}
+
+@media (max-width: 640px) {
+    .skill-search-bar {
+        height: 48px;
+    }
+
+    .skill-search-bar .btn-add-skill {
+        padding: 6px 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+}

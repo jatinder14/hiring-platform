@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { Briefcase, MapPin, DollarSign, Clock, CheckCircle, ChevronRight, X, Plus, Search, Globe, Building2, Map } from 'lucide-react';
+import { Briefcase, MapPin, DollarSign, Clock, CheckCircle, ChevronRight, X, Plus, Search, Globe, Building2, Map, Loader2 } from 'lucide-react';
 
 type JobData = {
     title: string;
@@ -388,16 +388,11 @@ export default function CreateJobForm() {
                             {/* Salary Section */}
                             <div className="form-group full-width" style={{ marginTop: '8px' }}>
                                 <label className="form-label" style={{ color: '#3b82f6', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Compensation</label>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr 1fr',
-                                    gap: '16px',
-                                    marginTop: '12px'
-                                }}>
-                                    <div>
+                                <div className="compensation-grid">
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
                                         <label className="form-label" style={{ fontSize: '13px' }}>Min Salary</label>
-                                        <div className="input-wrapper">
-                                            <div style={{ color: '#9ca3af', fontWeight: '600', marginRight: '4px' }}>
+                                        <div className="salary-input-group">
+                                            <div className="currency-symbol">
                                                 {CURRENCIES.find(c => c.code === formData.currency)?.symbol}
                                             </div>
                                             <input
@@ -405,15 +400,14 @@ export default function CreateJobForm() {
                                                 name="salaryMin"
                                                 value={formData.salaryMin}
                                                 onChange={handleInputChange}
-                                                placeholder="e.g. 60000"
-                                                className="form-input"
+                                                placeholder="60,000"
                                             />
                                         </div>
                                     </div>
-                                    <div>
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
                                         <label className="form-label" style={{ fontSize: '13px' }}>Max Salary</label>
-                                        <div className="input-wrapper">
-                                            <div style={{ color: '#9ca3af', fontWeight: '600', marginRight: '4px' }}>
+                                        <div className="salary-input-group">
+                                            <div className="currency-symbol">
                                                 {CURRENCIES.find(c => c.code === formData.currency)?.symbol}
                                             </div>
                                             <input
@@ -421,18 +415,18 @@ export default function CreateJobForm() {
                                                 name="salaryMax"
                                                 value={formData.salaryMax}
                                                 onChange={handleInputChange}
-                                                placeholder="e.g. 90000"
-                                                className="form-input"
+                                                placeholder="90,000"
                                             />
                                         </div>
                                     </div>
-                                    <div>
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
                                         <label className="form-label" style={{ fontSize: '13px' }}>Currency</label>
                                         <select
                                             name="currency"
                                             value={formData.currency}
                                             onChange={handleInputChange}
                                             className="form-input"
+                                            style={{ height: '48px' }}
                                         >
                                             {CURRENCIES.map(c => (
                                                 <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
@@ -483,62 +477,33 @@ export default function CreateJobForm() {
                             </div>
 
                             {/* Skills Tag Section */}
-                            <div className="form-group full-width" style={{ marginTop: '8px' }}>
-                                <label className="form-label" style={{ color: '#3b82f6', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Required Skills</label>
-                                <div style={{ marginTop: '12px', position: 'relative' }} ref={skillInputRef}>
-                                    <div style={{
-                                        display: 'flex',
-                                        flexWrap: 'wrap',
-                                        gap: '8px',
-                                        marginBottom: formData.skills.length > 0 ? '12px' : '0',
-                                        padding: formData.skills.length > 0 ? '8px 12px' : '0',
-                                        background: formData.skills.length > 0 ? '#f8fafc' : 'transparent',
-                                        borderRadius: '12px',
-                                        border: formData.skills.length > 0 ? '1px solid #e2e8f0' : 'none'
-                                    }}>
-                                        {formData.skills.map(skill => (
-                                            <span
-                                                key={skill}
-                                                style={{
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '6px',
-                                                    background: '#3b82f6',
-                                                    color: 'white',
-                                                    padding: '6px 12px',
-                                                    borderRadius: '8px',
-                                                    fontSize: '13px',
-                                                    fontWeight: '600'
-                                                }}
-                                            >
-                                                {skill}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeSkill(skill)}
-                                                    style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                                >
-                                                    <X size={12} strokeWidth={3} />
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </div>
+                            <div className="form-group full-width" style={{ marginTop: '28px' }}>
+                                <label className="form-label" style={{
+                                    color: '#3b82f6',
+                                    fontSize: '12px',
+                                    fontWeight: '800',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.1em',
+                                    marginBottom: '16px',
+                                    display: 'block'
+                                }}>
+                                    Required Skills
+                                </label>
+                                <div className="skills-outer-container" ref={skillInputRef}>
+                                    {formData.skills.length > 0 && (
+                                        <div className="skills-chip-area">
+                                            {formData.skills.map(skill => (
+                                                <span key={skill} className="skill-chip">
+                                                    {skill}
+                                                    <button type="button" onClick={() => removeSkill(skill)}>
+                                                        <X size={12} />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                    <div
-                                        className="input-wrapper"
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '12px',
-                                            padding: '8px 12px',
-                                            border: '1px solid',
-                                            borderColor: isSearchFocused ? '#3b82f6' : '#d1d5db',
-                                            borderRadius: '10px',
-                                            backgroundColor: isSearchFocused ? 'white' : '#f9fafb',
-                                            boxShadow: isSearchFocused ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : 'none',
-                                            transition: 'all 0.2s',
-                                            width: '100%'
-                                        }}
-                                    >
+                                    <div className="skill-search-bar" style={{ borderColor: isSearchFocused ? '#3b82f6' : '#d1d5db', backgroundColor: isSearchFocused ? 'white' : '#f9fafb' }}>
                                         <Search size={18} style={{ color: isSearchFocused ? '#3b82f6' : '#9ca3af' }} />
                                         <input
                                             type="text"
@@ -551,36 +516,13 @@ export default function CreateJobForm() {
                                                 }
                                             }}
                                             placeholder="Search or add a custom skill..."
-                                            style={{
-                                                border: 'none',
-                                                background: 'transparent',
-                                                outline: 'none',
-                                                width: '100%',
-                                                fontSize: '15px',
-                                                color: '#111827',
-                                                padding: 0
-                                            }}
                                             onFocus={() => {
                                                 setIsSearchFocused(true);
                                                 if (skillInput.trim()) setShowSkillSuggestions(true);
                                             }}
                                             onBlur={() => setIsSearchFocused(false)}
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={() => addSkill()}
-                                            style={{
-                                                border: 'none',
-                                                background: '#3b82f6',
-                                                color: 'white',
-                                                padding: '6px 16px',
-                                                borderRadius: '8px',
-                                                fontSize: '13px',
-                                                fontWeight: '600',
-                                                cursor: 'pointer',
-                                                whiteSpace: 'nowrap'
-                                            }}
-                                        >
+                                        <button type="button" onClick={() => addSkill()} className="btn-add-skill">
                                             Add
                                         </button>
                                     </div>
@@ -691,10 +633,11 @@ export default function CreateJobForm() {
                 )}
 
                 {/* Footer Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px', borderTop: '1px solid #f3f4f6', background: '#fcfdfe' }}>
-                    {currentStep > 1 ? (
+                <div className="form-footer" style={{ position: 'relative' }}>
+                    {currentStep > 1 && (
                         <button
                             onClick={handleBack}
+                            className="btn-back"
                             style={{
                                 border: '1px solid #e5e7eb', background: 'white', color: '#4b5563',
                                 padding: '12px 24px', borderRadius: '12px', fontSize: '15px', fontWeight: '700',
@@ -705,7 +648,7 @@ export default function CreateJobForm() {
                         >
                             <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back
                         </button>
-                    ) : <div></div>}
+                    )}
 
                     {currentStep < 2 ? (
                         <button
@@ -731,12 +674,17 @@ export default function CreateJobForm() {
                                 border: 'none', background: '#10b981', color: 'white',
                                 padding: '12px 40px', borderRadius: '12px', fontSize: '15px', fontWeight: '700',
                                 cursor: isSubmitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
-                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                                display: 'flex', alignItems: 'center', gap: '8px'
                             }}
                             onMouseEnter={e => isSubmitting ? null : e.currentTarget.style.background = '#059669'}
                             onMouseLeave={e => isSubmitting ? null : e.currentTarget.style.background = '#10b981'}
                         >
-                            {isSubmitting ? 'Going Live...' : 'Publish Now'}
+                            {isSubmitting ? (
+                                <>Going Live <Loader2 className="animate-spin" size={18} /></>
+                            ) : (
+                                <>Publish Now <CheckCircle size={18} /></>
+                            )}
                         </button>
                     )}
                 </div>

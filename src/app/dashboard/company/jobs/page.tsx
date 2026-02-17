@@ -203,23 +203,11 @@ export default function ManageJobsPage() {
                                     <StatusBadge status={job.status} />
                                 </div>
 
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', color: '#6b7280', fontSize: '14px' }}>
+                                <div className="manage-job-meta">
                                     {job.location && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <MapPin size={14} />
                                             <span>{job.location}</span>
-                                        </div>
-                                    )}
-                                    {job.employmentType && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Briefcase size={14} />
-                                            <span>{job.employmentType}</span>
-                                        </div>
-                                    )}
-                                    {(job.experienceMin !== undefined || job.experienceMax !== undefined) && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#92400e', backgroundColor: '#fef3c7', padding: '1px 6px', borderRadius: '4px', fontWeight: '500', fontSize: '12px' }}>
-                                            <Clock size={12} />
-                                            <span>{job.experienceMin}-{job.experienceMax} Yrs Exp</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

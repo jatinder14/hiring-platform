@@ -31,32 +31,84 @@ export async function GET(req: Request) {
             }, { status: 403 });
         }
 
-        // 3. 🔒 SECURITY: Filter by companyId ONLY
-        // This ensures Company A never sees Company B's applications
-        console.log('[API] Fetching applications for companyId:', userId);
+        // 3. 🔍 Parse filters from query params
+        const { searchParams } = new URL(req.url);
+        const statusParam = searchParams.get('status');
+        const fromDate = searchParams.get('fromDate');
+        const toDate = searchParams.get('toDate');
 
-        // Usage of 'any' is required because Prisma client might be out of sync with schema
-        const applications: any[] = await (prisma.application as any).findMany({
-            where: {
-                companyId: userId  // ✅ Direct filter by company
-            },
-            include: {
-                job: {
-                    select: {
-                        id: true,
-                        title: true,
-                        category: true,
-                        employmentType: true,
-                        location: true,
-                        companyId: true,  // For additional verification
+        // Construct where clause
+        let whereClause: any = {
+            companyId: userId
+        };
+
+        // Status mapping
+        const statusMap: Record<string, string[]> = {
+            'Active': ['APPLIED', 'SHORTLISTED', 'INTERVIEW'],
+            'Inactive': ['REJECTED', 'HIRED'],
+            'Withdrawn': ['WITHDRAWN']
+        };
+
+        if (statusParam && statusMap[statusParam]) {
+            whereClause.status = { in: statusMap[statusParam] };
+        }
+
+        // Date range filtering
+        if (fromDate || toDate) {
+            whereClause.appliedAt = {};
+            if (fromDate) whereClause.appliedAt.gte = new Date(fromDate);
+            if (toDate) whereClause.appliedAt.lte = new Date(toDate);
+        }
+
+        // 4. Handle Default Filtering Logic if no status filter is provided
+        let applications: any[] = [];
+
+        if (!statusParam) {
+            // Requirement: "By default, show only Active applications... If there are no Active applications, then show Inactive, Withdrawn"
+            const activeApps = await (prisma.application as any).findMany({
+                where: {
+                    ...whereClause,
+                    status: { in: statusMap['Active'] }
+                },
+                include: {
+                    job: {
+                        select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
                     }
-                }
-            },
-            orderBy: { appliedAt: 'desc' }
-        });
+                },
+                orderBy: { appliedAt: 'desc' }
+            });
 
-        // 4. 🔒 ADDITIONAL SECURITY: Verify all included jobs belong to this company
-        // Defense in depth - ensures no data leaks even if DB relationships are broken
+            if (activeApps.length > 0) {
+                applications = activeApps;
+            } else {
+                // Fetch Inactive and Withdrawn
+                applications = await (prisma.application as any).findMany({
+                    where: {
+                        ...whereClause,
+                        status: { in: [...statusMap['Inactive'], ...statusMap['Withdrawn']] }
+                    },
+                    include: {
+                        job: {
+                            select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
+                        }
+                    },
+                    orderBy: { appliedAt: 'desc' }
+                });
+            }
+        } else {
+            // Fetch based on explicit status filter
+            applications = await (prisma.application as any).findMany({
+                where: whereClause,
+                include: {
+                    job: {
+                        select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
+                    }
+                },
+                orderBy: { appliedAt: 'desc' }
+            });
+        }
+
+        // 5. 🔒 SECURITY: Verify all included jobs belong to this company
         const verified = applications.filter((app: any) =>
             app.job && app.job.companyId === userId
         );
@@ -67,7 +119,7 @@ export async function GET(req: Request) {
             );
         }
 
-        // 5. Fetch Candidate Details
+        // 6. Fetch Candidate Details
         const candidateIds = Array.from(new Set(verified.map((app: any) => app.candidateId)));
 
         const candidates = await prisma.user.findMany({
@@ -84,7 +136,7 @@ export async function GET(req: Request) {
 
         const candidateMap = new Map(candidates.map(c => [c.clerkId, c]));
 
-        // 6. 🛡️ DATA RECOVERY: If any candidates are missing from DB, fetch from Clerk
+        // 7. 🛡️ DATA RECOVERY: If any candidates are missing from DB, fetch from Clerk
         const enrichedApplications = await Promise.all(verified.map(async (app) => {
             let candidate = candidateMap.get(app.candidateId);
 
