@@ -86,6 +86,8 @@ export async function POST(req: Request) {
                 currency,
                 companyId: userId,  // ✅ From authenticated session, NOT from request body
                 status: status === 'ACTIVE' ? 'ACTIVE' : 'DRAFT',  // Default to DRAFT for safety
+                experienceMin: experienceMin ? parseInt(experienceMin) : null,
+                experienceMax: experienceMax ? parseInt(experienceMax) : null,
             }
         });
 
@@ -114,7 +116,7 @@ export async function POST(req: Request) {
  * Public endpoint - no authentication required
  */
 export async function GET(req: Request) {
-    console.log('[API] GET /api/jobs - Request received');
+    console.log('[API] GET /api/jobs - Fetching jobs...');
 
     try {
         const { searchParams } = new URL(req.url);
@@ -124,42 +126,61 @@ export async function GET(req: Request) {
         const where: any = {};
 
         // 🔒 SECURITY: For public listing, only show ACTIVE jobs
-        // Companies can see their own jobs in dedicated endpoint
         if (status) {
             where.status = status;
         } else {
-            where.status = 'ACTIVE';  // Default to ACTIVE only
+            where.status = 'ACTIVE';
         }
 
-        // Fetch jobs
-        const jobs = await prisma.job.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            select: {
-                id: true,
-                title: true,
-                company: true,
-                location: true,
-                description: true,
-                employmentType: true,
-                category: true,
-                skills: true,
-                salary: true,
-                currency: true,
-                status: true,
-                createdAt: true,
-                // Don't expose companyId in public listing for privacy
-                companyId: false,
-            }
-        });
+        // Fetch jobs with comprehensive error handling
+        try {
+            const jobs = await prisma.job.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                // Select only what's needed for public view
+                select: {
+                    id: true,
+                    title: true,
+                    company: true,
+                    location: true,
+                    description: true,
+                    employmentType: true,
+                    category: true,
+                    skills: true,
+                    salary: true,
+                    currency: true,
+                    status: true,
+                    createdAt: true,
+                    experienceMin: true,
+                    experienceMax: true,
+                }
+            });
 
-        console.log(`[API] Found ${jobs.length} jobs`);
-        return NextResponse.json(jobs);
+            console.log(`[API] Successfully fetched ${jobs.length} jobs`);
+            return NextResponse.json(jobs);
+        } catch (dbError: any) {
+            console.error('[API] Database query failed, attempting simple fallback:', dbError.message);
+
+            // Fallback: Fetch everything without specific select in case of schema sync issues
+            const rawJobs = await prisma.job.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                take: 50, // Limit for safety during fallback
+            });
+
+            // Clean data before sending
+            const sanitizedJobs = rawJobs.map((j: any) => {
+                const { companyId, ...rest } = j;
+                return rest;
+            });
+
+            return NextResponse.json(sanitizedJobs);
+        }
 
     } catch (error: any) {
-        console.error('[API] Error in GET /api/jobs:', error);
+        console.error('[API] Critical error in GET /api/jobs:', error);
         return NextResponse.json({
-            error: "Failed to fetch jobs",
+            error: "We're having trouble reaching the database. Please try again in a moment.",
             details: error.message
         }, { status: 500 });
     }

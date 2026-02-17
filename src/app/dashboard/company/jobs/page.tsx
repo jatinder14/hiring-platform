@@ -12,6 +12,7 @@ import {
     Briefcase,
     Users,
     Calendar,
+    Clock,
     Filter,
     AlertCircle,
     Loader2,
@@ -135,10 +136,10 @@ export default function ManageJobsPage() {
     }
 
     return (
-        <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="manage-jobs-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
+            <div className="manage-jobs-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
+                <div style={{ minWidth: '0', flex: '1' }}>
                     <h1 className="page-title" style={{ margin: 0 }}>Manage Jobs</h1>
                     <p className="page-subtitle" style={{ margin: '4px 0 0 0' }}>Track and manage your diverse hiring pipeline.</p>
                 </div>
@@ -150,28 +151,28 @@ export default function ManageJobsPage() {
 
             {/* Filter Bar */}
             <div className="card" style={{ padding: '20px', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <div className="business-filter-bar" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                     {/* Search */}
-                    <div style={{ flex: '1', minWidth: '250px', position: 'relative' }}>
-                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                    <div className="search-wrapper" style={{ flex: '1', minWidth: '200px', position: 'relative' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                         <input
                             type="text"
                             placeholder="Search jobs by title or location..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="form-input"
-                            style={{ paddingLeft: '40px', width: '100%' }}
+                            style={{ paddingLeft: '40px', width: '100%', boxSizing: 'border-box' }}
                         />
                     </div>
 
                     {/* Status Filter */}
-                    <div style={{ width: '200px', position: 'relative' }}>
-                        <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', zIndex: 1 }} />
+                    <div className="status-filter-wrapper" style={{ position: 'relative', flex: '0 0 200px', width: '100%', maxWidth: '100%' }}>
+                        <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', zIndex: 1, pointerEvents: 'none' }} />
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                             className="form-input"
-                            style={{ paddingLeft: '36px', width: '100%', appearance: 'none', cursor: 'pointer' }}
+                            style={{ paddingLeft: '36px', width: '100%', appearance: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
                         >
                             <option value="All">All Statuses</option>
                             <option value="Active">Active</option>
@@ -189,9 +190,16 @@ export default function ManageJobsPage() {
                     filteredJobs.map((job) => (
                         <div key={job.id} className="card job-card" style={{ padding: '24px', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
                             {/* Job Info */}
-                            <div style={{ flex: '1', minWidth: '300px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#111827' }}>{job.title}</h3>
+                            <div style={{ flex: '1', minWidth: '0' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                    <h3 style={{
+                                        margin: 0,
+                                        fontSize: '18px',
+                                        fontWeight: '700',
+                                        color: '#111827',
+                                        overflowWrap: 'anywhere',
+                                        wordBreak: 'break-word'
+                                    }}>{job.title}</h3>
                                     <StatusBadge status={job.status} />
                                 </div>
 
@@ -208,6 +216,12 @@ export default function ManageJobsPage() {
                                             <span>{job.employmentType}</span>
                                         </div>
                                     )}
+                                    {(job.experienceMin !== undefined || job.experienceMax !== undefined) && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#92400e', backgroundColor: '#fef3c7', padding: '1px 6px', borderRadius: '4px', fontWeight: '500', fontSize: '12px' }}>
+                                            <Clock size={12} />
+                                            <span>{job.experienceMin}-{job.experienceMax} Yrs Exp</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Users size={14} />
                                         <span>{job._count?.applications || 0} Applicants</span>
@@ -220,13 +234,14 @@ export default function ManageJobsPage() {
                             </div>
 
                             {/* Actions */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="job-card-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <Link
                                     href={`/dashboard/company/jobs/${job.id}`}
+                                    className="btn-primary"
                                     style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
                                         borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500',
-                                        backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #dbeafe'
+                                        flex: '1', minWidth: '100px', justifyContent: 'center'
                                     }}
                                 >
                                     <Eye size={16} /> View
@@ -234,10 +249,11 @@ export default function ManageJobsPage() {
 
                                 <Link
                                     href={`/dashboard/company/jobs/${job.id}/edit`}
+                                    className="btn-secondary"
                                     style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
                                         borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500',
-                                        backgroundColor: '#ffffff', color: '#374151', border: '1px solid #d1d5db'
+                                        flex: '1', minWidth: '100px', justifyContent: 'center'
                                     }}
                                 >
                                     <Pencil size={16} /> Edit
@@ -245,10 +261,11 @@ export default function ManageJobsPage() {
 
                                 <button
                                     onClick={() => setJobToDelete(job.id)}
+                                    className="btn-secondary"
                                     style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-                                        borderRadius: '8px', border: '1px solid #fee2e2', fontSize: '14px', fontWeight: '500',
-                                        backgroundColor: '#ffffff', color: '#dc2626', cursor: 'pointer'
+                                        borderRadius: '8px', fontSize: '14px', fontWeight: '500', color: '#dc2626', borderColor: '#fecaca',
+                                        flex: '1', minWidth: '100px', justifyContent: 'center'
                                     }}
                                 >
                                     <Trash2 size={16} /> Delete

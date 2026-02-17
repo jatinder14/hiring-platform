@@ -91,6 +91,7 @@ export default function CreateJobForm() {
     const [skillInput, setSkillInput] = useState('');
     const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
     const [showSkillSuggestions, setShowSkillSuggestions] = useState(false);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const skillInputRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -267,7 +268,12 @@ export default function CreateJobForm() {
                         <div style={{ padding: '32px' }} className="form-grid">
                             {/* Job Title */}
                             <div className="form-group full-width">
-                                <label className="form-label" style={{ fontWeight: '700', marginBottom: '10px', display: 'block' }}>Job Title <span className="text-danger">*</span></label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <label className="form-label" style={{ fontWeight: '700', margin: 0 }}>Job Title <span className="text-danger">*</span></label>
+                                    <span style={{ fontSize: '12px', color: formData.title.length >= 50 ? '#ef4444' : '#6b7280', fontWeight: '600' }}>
+                                        {formData.title.length}/50
+                                    </span>
+                                </div>
                                 <div className="input-wrapper">
                                     <Briefcase size={18} />
                                     <input
@@ -277,8 +283,14 @@ export default function CreateJobForm() {
                                         onChange={handleInputChange}
                                         placeholder="e.g. Senior Frontend Engineer"
                                         className="form-input"
+                                        maxLength={50}
                                     />
                                 </div>
+                                {formData.title.length >= 50 && (
+                                    <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', fontWeight: '500' }}>
+                                        Character limit reached (max 50)
+                                    </p>
+                                )}
                             </div>
 
                             {/* Employment Type */}
@@ -511,8 +523,23 @@ export default function CreateJobForm() {
                                         ))}
                                     </div>
 
-                                    <div className="input-wrapper">
-                                        <Search size={18} />
+                                    <div
+                                        className="input-wrapper"
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            padding: '8px 12px',
+                                            border: '1px solid',
+                                            borderColor: isSearchFocused ? '#3b82f6' : '#d1d5db',
+                                            borderRadius: '10px',
+                                            backgroundColor: isSearchFocused ? 'white' : '#f9fafb',
+                                            boxShadow: isSearchFocused ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : 'none',
+                                            transition: 'all 0.2s',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        <Search size={18} style={{ color: isSearchFocused ? '#3b82f6' : '#9ca3af' }} />
                                         <input
                                             type="text"
                                             value={skillInput}
@@ -524,13 +551,35 @@ export default function CreateJobForm() {
                                                 }
                                             }}
                                             placeholder="Search or add a custom skill..."
-                                            className="form-input"
-                                            onFocus={() => skillInput.trim() && setShowSkillSuggestions(true)}
+                                            style={{
+                                                border: 'none',
+                                                background: 'transparent',
+                                                outline: 'none',
+                                                width: '100%',
+                                                fontSize: '15px',
+                                                color: '#111827',
+                                                padding: 0
+                                            }}
+                                            onFocus={() => {
+                                                setIsSearchFocused(true);
+                                                if (skillInput.trim()) setShowSkillSuggestions(true);
+                                            }}
+                                            onBlur={() => setIsSearchFocused(false)}
                                         />
                                         <button
                                             type="button"
                                             onClick={() => addSkill()}
-                                            style={{ border: 'none', background: '#3b82f6', color: 'white', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginLeft: '8px' }}
+                                            style={{
+                                                border: 'none',
+                                                background: '#3b82f6',
+                                                color: 'white',
+                                                padding: '6px 16px',
+                                                borderRadius: '8px',
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                cursor: 'pointer',
+                                                whiteSpace: 'nowrap'
+                                            }}
                                         >
                                             Add
                                         </button>

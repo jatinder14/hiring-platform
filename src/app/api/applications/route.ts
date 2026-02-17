@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         console.log("[API] Request body received");
 
-        const { jobId, resumeUrl, motivation, currentCTC, expectedCTC, noticePeriod, city } = body;
+        const { jobId, resumeUrl, motivation, currentCTC, expectedCTC, currentCurrency, expectedCurrency, noticePeriod, city } = body;
 
         // 3. Validate required fields
         if (!jobId || !resumeUrl) {
@@ -61,7 +61,40 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
-        // 5. Check if user already applied to this job
+        // 5. 🛡️ DATA INTEGRITY: Ensure Candidate exists in our local User table
+        // This handles cases where webhooks might have failed or not run yet
+        const existingUser = await prisma.user.findUnique({
+            where: { clerkId: userId }
+        });
+
+        if (!existingUser) {
+            console.log('[API] Candidate not found in local DB, syncing from Clerk...');
+            try {
+                const { currentUser } = await import('@clerk/nextjs/server');
+                const clerkUser = await currentUser();
+
+                if (clerkUser) {
+                    const email = clerkUser.emailAddresses[0]?.emailAddress;
+                    const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || null;
+
+                    await prisma.user.create({
+                        data: {
+                            clerkId: userId,
+                            email: email || `no-email-${userId}@placeholder.com`,
+                            name: name,
+                            profileImageUrl: clerkUser.imageUrl,
+                            userRole: 'CANDIDATE'
+                        }
+                    });
+                    console.log('[API] Successfully synced missing candidate to local DB');
+                }
+            } catch (syncError) {
+                console.error('[API] Failed to sync candidate during application:', syncError);
+                // We continue anyway, as we have the clerkId which is the important part
+            }
+        }
+
+        // 6. Check if user already applied to this job
         const existingApplication = await prisma.application.findFirst({
             where: {
                 jobId: jobId,
@@ -77,7 +110,7 @@ export async function POST(req: Request) {
         }
 
         // 6. 🔒 SECURITY: Create application with companyId from job
-        const application = await prisma.application.create({
+        const application = await (prisma.application as any).create({
             data: {
                 jobId: jobId,
                 candidateId: userId,
@@ -86,6 +119,8 @@ export async function POST(req: Request) {
                 motivation: motivation ? JSON.stringify(motivation) : null,
                 currentCTC: currentCTC || null,
                 expectedCTC: expectedCTC || null,
+                currentCurrency: currentCurrency || null,
+                expectedCurrency: expectedCurrency || null,
                 noticePeriod: noticePeriod || null,
                 city: city || null,
                 status: "APPLIED"

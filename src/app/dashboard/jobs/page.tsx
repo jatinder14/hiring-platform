@@ -14,6 +14,8 @@ type Job = {
     salary: string;
     currency: string;
     skills: string[];
+    experienceMin?: number;
+    experienceMax?: number;
     createdAt: string;
 };
 
@@ -37,34 +39,43 @@ export default function JobsPage() {
         skills: ''
     });
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                // Fetch jobs and applications in parallel
-                const [jobsRes, appsRes] = await Promise.all([
-                    fetch('/api/jobs'),
-                    fetch('/api/applications') // To check which jobs user applied to
-                ]);
+    const fetchData = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            console.log('[JobsPage] Fetching data...');
+            // Fetch jobs and applications in parallel
+            const [jobsRes, appsRes] = await Promise.all([
+                fetch('/api/jobs').catch(e => ({ ok: false, statusText: e.message })),
+                fetch('/api/applications').catch(e => ({ ok: false, statusText: e.message }))
+            ]);
 
-                if (!jobsRes.ok) throw new Error('Failed to fetch jobs');
-
-                const jobsData = await jobsRes.json();
-                setJobs(jobsData);
-
-                // If user is logged in, appsRes might be ok, otherwise 401
-                if (appsRes.ok) {
-                    const appsData: Application[] = await appsRes.json();
-                    const appliedIds = new Set(appsData.map(app => app.jobId));
-                    setAppliedJobIds(appliedIds);
-                }
-            } catch (err: any) {
-                console.error("Error loading jobs:", err);
-                setError('Failed to load jobs. Please try again later.');
-            } finally {
-                setLoading(false);
+            if (!jobsRes.ok) {
+                const status = 'status' in jobsRes ? (jobsRes as Response).status : 500;
+                const errorData = 'json' in jobsRes ? await (jobsRes as Response).json().catch(() => ({})) : { error: jobsRes.statusText };
+                console.error('[JobsPage] Jobs API failed:', status, errorData);
+                throw new Error(errorData.error || 'Failed to fetch jobs');
             }
-        }
 
+            const jobsData = await (jobsRes as Response).json();
+            console.log(`[JobsPage] Received ${jobsData.length} jobs`);
+            setJobs(jobsData);
+
+            // If user is logged in, appsRes might be ok, otherwise 401
+            if (appsRes.ok) {
+                const appsData: Application[] = await (appsRes as Response).json();
+                const appliedIds = new Set(appsData.map(app => app.jobId));
+                setAppliedJobIds(appliedIds);
+            }
+        } catch (err: any) {
+            console.error("Error loading jobs:", err);
+            setError(err.message || 'Failed to load jobs. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchData();
     }, []);
 
@@ -100,13 +111,18 @@ export default function JobsPage() {
 
     if (error) {
         return (
-            <div className="p-8 text-center text-red-500">
-                <p>{error}</p>
+            <div className="p-12 text-center">
+                <div style={{ backgroundColor: '#fee2e2', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                    <X size={32} style={{ color: '#ef4444' }} />
+                </div>
+                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Something went wrong</h2>
+                <p style={{ color: '#6b7280', maxWidth: '400px', margin: '0 auto 24px' }}>{error}</p>
                 <button
-                    onClick={() => window.location.reload()}
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    onClick={() => fetchData()}
+                    className="btn-primary"
+                    style={{ padding: '10px 32px' }}
                 >
-                    Retry
+                    Try Again
                 </button>
             </div>
         );
@@ -206,66 +222,187 @@ export default function JobsPage() {
             <div className="jobs-page-grid">
                 {/* Job List - Now on LEFT */}
                 <div className="job-list">
-                    {filteredJobs.length > 0 ? (
-                        filteredJobs.map((job) => {
-                            const hasApplied = appliedJobIds.has(job.id);
+                    {jobs.length === 0 ? (
+                        <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-100 shadow-sm">
+                            <div style={{ backgroundColor: '#eff6ff', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                                <Briefcase size={32} style={{ color: '#3b82f6' }} />
+                            </div>
+                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>No jobs available yet</h2>
+                            <p style={{ color: '#6b7280', maxWidth: '400px', margin: '0 auto' }}>
+                                We're currently matching new opportunities. Check back soon for new openings!
+                            </p>
+                        </div>
+                    ) : filteredJobs.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            {filteredJobs.map((job) => {
+                                const hasApplied = appliedJobIds.has(job.id);
 
-                            return (
-                                <div key={job.id} className="job-card">
-                                    <div className="job-info">
-                                        <h3>{job.title}</h3>
-                                        <span className="company-name">{job.company}</span>
-                                        <div className="job-tags mb-4" style={{ marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                            <span className="tag text-xs font-semibold bg-blue-50 text-blue-600 px-2 py-1 rounded">{job.employmentType}</span>
-                                            {job.skills && job.skills.slice(0, 3).map(skill => (
-                                                <span key={skill} className="tag text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{skill}</span>
-                                            ))}
-                                        </div>
-                                        <div className="flex gap-4 text-gray-500 text-sm mb-4" style={{ display: 'flex', gap: '16px', color: '#6b7280', marginBottom: '16px', fontSize: '14px', flexWrap: 'wrap' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MapPin size={14} /> {job.location}</span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><DollarSign size={14} /> {job.salary || "Competitive"} {job.currency || ""}</span>
-                                        </div>
-                                        <p style={{ color: '#4b5563', lineHeight: '1.5', fontSize: '15px' }} className="line-clamp-3">
-                                            {job.description && job.description.length > 150 ? job.description.substring(0, 150) + "..." : job.description}
-                                        </p>
-                                    </div>
-                                    <div className="job-actions">
-                                        {hasApplied ? (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
-                                                <button
-                                                    className="btn-secondary"
-                                                    disabled
-                                                    style={{
-                                                        cursor: 'not-allowed',
-                                                        backgroundColor: '#f3f4f6',
-                                                        borderColor: '#e5e7eb',
-                                                        color: '#9ca3af',
+                                return (
+                                    <div key={job.id} className="job-card" style={{ cursor: 'default' }}>
+                                        {/* Left Content Area */}
+                                        <div className="job-info" style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '0' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <h3 style={{
+                                                    margin: 0,
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                    lineHeight: '1.4',
+                                                    overflowWrap: 'anywhere',
+                                                    wordBreak: 'break-word'
+                                                }}>{job.title}</h3>
+                                                <span className="company-name" style={{ margin: 0 }}>{job.company}</span>
+                                            </div>
+
+                                            {/* Tags Row */}
+                                            <div className="job-tags">
+                                                <span className="tag" style={{ border: '1px solid #dbeafe' }}>{job.employmentType}</span>
+                                                {job.skills && job.skills.slice(0, 4).map(skill => (
+                                                    <span key={skill} className="tag" style={{
+                                                        backgroundColor: '#f8fafc',
+                                                        color: '#475569',
+                                                        border: '1px solid #e2e8f0'
+                                                    }}>{skill}</span>
+                                                ))}
+                                            </div>
+
+                                            {/* Meta Data Row */}
+                                            <div style={{
+                                                display: 'flex',
+                                                flexWrap: 'wrap',
+                                                gap: '12px 20px',
+                                                alignItems: 'center',
+                                                marginTop: '4px',
+                                                width: '100%'
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '14px', minWidth: '0' }}>
+                                                    <MapPin size={16} />
+                                                    <span style={{
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        maxWidth: '180px'
+                                                    }}>{job.location}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '14px', minWidth: '0' }}>
+                                                    {job.currency === 'USD' ? <DollarSign size={16} /> : <Briefcase size={16} />}
+                                                    <span style={{ fontWeight: '600', color: '#334155', whiteSpace: 'nowrap' }}>
+                                                        {job.salary || "Competitive"} {job.currency && job.currency !== 'USD' ? job.currency : ''}
+                                                    </span>
+                                                </div>
+                                                {(job.experienceMin !== undefined || job.experienceMax !== undefined) && (
+                                                    <div style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '8px'
+                                                        gap: '6px',
+                                                        backgroundColor: '#fffbeb',
+                                                        color: '#92400e',
+                                                        padding: '4px 10px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '12px',
+                                                        fontWeight: '600',
+                                                        border: '1px solid #fef3c7',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        <span>{job.experienceMin}-{job.experienceMax} Yrs Exp</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Description Truncated */}
+                                            <p style={{
+                                                color: '#475569',
+                                                fontSize: '14px',
+                                                lineHeight: '1.6',
+                                                margin: '4px 0 0 0',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                                overflowWrap: 'anywhere',
+                                                wordBreak: 'break-word'
+                                            }}>
+                                                {job.description}
+                                            </p>
+                                        </div>
+
+                                        {/* Right Action Area */}
+                                        <div className="job-actions">
+                                            {hasApplied ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', alignItems: 'center' }}>
+                                                    <button
+                                                        className="btn-secondary"
+                                                        disabled
+                                                        style={{
+                                                            width: '100%',
+                                                            height: '44px',
+                                                            borderRadius: '12px',
+                                                            backgroundColor: '#f1f5f9',
+                                                            color: '#94a3b8',
+                                                            border: 'none',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '8px',
+                                                            fontSize: '15px',
+                                                            fontWeight: '600',
+                                                            cursor: 'not-allowed'
+                                                        }}
+                                                    >
+                                                        <CheckCircle size={18} />
+                                                        <span>Applied</span>
+                                                    </button>
+                                                    <Link
+                                                        href="/dashboard/applications"
+                                                        style={{
+                                                            fontSize: '13px',
+                                                            color: '#3b82f6',
+                                                            textDecoration: 'none',
+                                                            fontWeight: '600'
+                                                        }}
+                                                    >
+                                                        View Application
+                                                    </Link>
+                                                </div>
+                                            ) : (
+                                                <Link
+                                                    href={`/dashboard/jobs/${job.id}/apply`}
+                                                    className="btn-primary"
+                                                    style={{
+                                                        textDecoration: 'none',
+                                                        width: '100%',
+                                                        height: '44px',
+                                                        borderRadius: '12px',
+                                                        fontSize: '15px',
+                                                        fontWeight: '600'
                                                     }}
                                                 >
-                                                    <CheckCircle size={16} style={{ flexShrink: 0 }} />
-                                                    <span>Applied</span>
-                                                </button>
-                                                <Link href="/dashboard/applications" style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none', textAlign: 'center' }}>
-                                                    View Application
+                                                    Apply Now
                                                 </Link>
-                                            </div>
-                                        ) : (
-                                            <Link href={`/dashboard/jobs/${job.id}/apply`} className="btn-primary" style={{ textDecoration: 'none' }}>
-                                                Apply
-                                            </Link>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })
+                                );
+                            })}
+                        </div>
                     ) : (
-                        <div className="text-center py-12 text-gray-500">
-                            <p>No jobs found matching your criteria.</p>
-                            <button onClick={handleClearFilters} className="text-blue-500 underline mt-2">Clear filters</button>
+                        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                            <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '12px' }}>No jobs found matching your criteria.</p>
+                            <button
+                                onClick={handleClearFilters}
+                                style={{
+                                    color: '#3b82f6',
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '15px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline'
+                                }}
+                            >
+                                Clear all filters
+                            </button>
                         </div>
                     )}
                 </div>

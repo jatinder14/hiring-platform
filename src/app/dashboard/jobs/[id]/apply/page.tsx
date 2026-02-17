@@ -17,7 +17,38 @@ type Job = {
     location: string;
     salary: string;
     currency: string;
+    experienceMin?: number;
+    experienceMax?: number;
 };
+
+const WORLD_CURRENCIES = [
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'GBP', symbol: '£', name: 'British Pound' },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+    { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+    { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
+    { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal' },
+    { code: 'QAR', symbol: '﷼', name: 'Qatari Riyal' },
+    { code: 'OMR', symbol: '﷼', name: 'Omani Rial' },
+    { code: 'BHD', symbol: '.د.ب', name: 'Bahraini Dinar' },
+    { code: 'KWD', symbol: 'د.ك', name: 'Kuwaiti Dinar' },
+    { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
+    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+    { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar' },
+    { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar' },
+    { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
+    { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
+    { code: 'RUB', symbol: '₽', name: 'Russian Ruble' },
+    { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit' },
+    { code: 'THB', symbol: '฿', name: 'Thai Baht' },
+    { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
+    { code: 'PHP', symbol: '₱', name: 'Philippine Peso' },
+    { code: 'VND', symbol: '₫', name: 'Vietnamese Dong' },
+];
 
 export default function ApplyPage() {
     const params = useParams();
@@ -35,7 +66,9 @@ export default function ApplyPage() {
     // Form data
     const [formData, setFormData] = useState({
         currentCTC: '',
+        currentCurrency: 'USD',
         expectedCTC: '',
+        expectedCurrency: 'USD',
         noticePeriod: 'Immediate',
         city: '',
     });
@@ -70,6 +103,14 @@ export default function ApplyPage() {
                     const data = await res.json();
                     if (data) {
                         setJob(data);
+                        // Pre-select currency from job
+                        if (data.currency) {
+                            setFormData(prev => ({
+                                ...prev,
+                                currentCurrency: data.currency,
+                                expectedCurrency: data.currency
+                            }));
+                        }
                     } else {
                         setFetchError('Job not found');
                     }
@@ -82,6 +123,14 @@ export default function ApplyPage() {
                         const foundJob = allJobs.find(j => j.id === jobId);
                         if (foundJob) {
                             setJob(foundJob);
+                            // Pre-select currency from job
+                            if (foundJob.currency) {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    currentCurrency: foundJob.currency,
+                                    expectedCurrency: foundJob.currency
+                                }));
+                            }
                         } else {
                             setFetchError('Job not found or not active');
                         }
@@ -227,22 +276,29 @@ export default function ApplyPage() {
                 <ChevronLeft size={16} /> Back to Jobs
             </Link>
 
-            <div className="apply-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '40px' }}>
+            <div className="apply-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '40px' }}>
                 {/* Left Side: Job Details */}
                 <div className="job-details-section">
                     <div className="card" style={{ padding: '32px' }}>
                         <div className="mb-6" style={{ marginBottom: '24px' }}>
                             <span className="tag" style={{ marginBottom: '12px', display: 'inline-block' }}>{job.employmentType}</span>
-                            <h1 className="page-title" style={{ fontSize: '32px' }}>{job.title}</h1>
-                            <div className="flex gap-4 text-muted mt-2" style={{ display: 'flex', gap: '16px', color: '#6b7280' }}>
+                            <h1 className="page-title" style={{ fontSize: '32px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{job.title}</h1>
+                            <div className="flex gap-4 text-muted mt-2" style={{ display: 'flex', gap: '16px', color: '#6b7280', flexWrap: 'wrap' }}>
                                 <span className="flex items-center gap-1"><Briefcase size={16} /> {job.company}</span>
                                 <span className="flex items-center gap-1"><MapPin size={16} /> {job.location}</span>
-                                <span className="flex items-center gap-1"><DollarSign size={16} /> {job.salary} {job.currency}</span>
+                                <span className="flex items-center gap-1">
+                                    {job.currency === 'USD' ? <DollarSign size={16} /> : <Briefcase size={16} />}
+                                    {job.salary} {job.currency && job.currency !== 'USD' ? job.currency : ''}
+                                </span>
+                                {(job.experienceMin !== undefined || job.experienceMax !== undefined) && (
+                                    <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                        {job.experienceMin}-{job.experienceMax} Years Experience
+                                    </span>
+                                )}
                             </div>
                         </div>
 
-                        <div className="section-title">Job Description</div>
-                        <div className="job-desc-content" style={{ color: '#4b5563', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
+                        <div className="job-desc-content" style={{ color: '#4b5563', lineHeight: '1.7', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                             {job.description}
                         </div>
                     </div>
@@ -295,28 +351,54 @@ export default function ApplyPage() {
 
                             <div className="form-group">
                                 <label className="form-label">Current CTC (Annual)</label>
-                                <input
-                                    type="text"
-                                    name="currentCTC"
-                                    className="form-input"
-                                    placeholder="e.g. 100,000"
-                                    value={formData.currentCTC}
-                                    onChange={handleInputChange}
-                                    required
-                                />
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select
+                                        name="currentCurrency"
+                                        className="form-input"
+                                        style={{ width: '100px', flexShrink: 0 }}
+                                        value={formData.currentCurrency}
+                                        onChange={handleInputChange}
+                                    >
+                                        {WORLD_CURRENCIES.map(c => (
+                                            <option key={c.code} value={c.code}>{c.code}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="text"
+                                        name="currentCTC"
+                                        className="form-input"
+                                        placeholder="e.g. 100,000"
+                                        value={formData.currentCTC}
+                                        onChange={handleInputChange}
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">Expected CTC (Annual)</label>
-                                <input
-                                    type="text"
-                                    name="expectedCTC"
-                                    className="form-input"
-                                    placeholder="e.g. 150,000"
-                                    value={formData.expectedCTC}
-                                    onChange={handleInputChange}
-                                    required
-                                />
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select
+                                        name="expectedCurrency"
+                                        className="form-input"
+                                        style={{ width: '100px', flexShrink: 0 }}
+                                        value={formData.expectedCurrency}
+                                        onChange={handleInputChange}
+                                    >
+                                        {WORLD_CURRENCIES.map(c => (
+                                            <option key={c.code} value={c.code}>{c.code}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="text"
+                                        name="expectedCTC"
+                                        className="form-input"
+                                        placeholder="e.g. 150,000"
+                                        value={formData.expectedCTC}
+                                        onChange={handleInputChange}
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-group">

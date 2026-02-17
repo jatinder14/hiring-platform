@@ -39,16 +39,34 @@ export default function CompanyCandidatesPage() {
                 if (!res.ok) throw new Error('Failed to fetch candidates');
                 const data = await res.json();
 
-                const mappedCandidates = data.map((app: any) => ({
-                    id: app.id,
-                    name: app.candidate?.name || 'Unknown Candidate',
-                    role: app.candidate?.email || 'N/A', // Using email as role placeholder or fetch role from user profile if available
-                    jobApplied: app.job?.title || 'Unknown Job',
-                    status: app.status,
-                    experience: app.currentCTC ? `CTC: ${app.currentCTC}` : (app.noticePeriod || 'N/A'),
-                    matchScore: 0, // Placeholder as we don't calculate score yet
-                    avatar: app.candidate?.profileImageUrl
-                }));
+                const mappedCandidates = data.map((app: any) => {
+                    // Cleaner name handling
+                    const firstName = app.candidate?.name?.trim();
+                    const candidateName = firstName || 'Anonymous Candidate';
+                    const candidateEmail = app.candidate?.email || '';
+
+                    // Better salary/CTC display
+                    let experienceText = '';
+                    if (app.currentCTC && app.currentCTC !== '0' && app.currentCTC !== '000') {
+                        experienceText = `${app.currentCurrency || '₹'} ${app.currentCTC}`;
+                        if (!experienceText.includes('p.a.')) experienceText += ' p.a.';
+                    } else if (app.noticePeriod) {
+                        experienceText = `Notice: ${app.noticePeriod}`;
+                    } else {
+                        experienceText = 'Applied';
+                    }
+
+                    return {
+                        id: app.id,
+                        name: candidateName,
+                        role: candidateEmail,
+                        jobApplied: app.job?.title || 'Open Position',
+                        status: app.status || 'NEW',
+                        experience: experienceText,
+                        matchScore: 0,
+                        avatar: app.candidate?.profileImageUrl
+                    };
+                });
 
                 setCandidates(mappedCandidates);
             } catch (err) {
@@ -86,20 +104,21 @@ export default function CompanyCandidatesPage() {
             </header>
 
             {/* Controls */}
-            <div className="card" style={{ padding: '16px 24px', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div className="input-wrapper" style={{ flex: 1, minWidth: '280px' }}>
-                        <Search size={18} />
+            <div className="card" style={{ padding: '20px', marginBottom: '24px' }}>
+                <div className="business-filter-bar" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="search-wrapper" style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                         <input
                             type="text"
                             placeholder="Search candidates by name, email..."
                             className="form-input"
+                            style={{ paddingLeft: '40px', width: '100%' }}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
-                    <button className="btn-secondary" style={{ display: 'flex', gap: '8px', padding: '0 20px' }}>
+                    <button className="btn-secondary" style={{ display: 'flex', gap: '8px', height: '44px', padding: '0 20px', alignItems: 'center' }}>
                         <Filter size={18} />
                         Filters
                     </button>
@@ -107,23 +126,25 @@ export default function CompanyCandidatesPage() {
             </div>
 
             {/* Candidates Table/List */}
-            <div className="candidates-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="candidates-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {filteredCandidates.length > 0 ? (
                     filteredCandidates.map((candidate) => (
-                        <div key={candidate.id} className="card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e5e7eb' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                <div style={{
-                                    width: '52px',
-                                    height: '52px',
-                                    borderRadius: '50%',
+                        <div key={candidate.id} className="card candidate-card" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', border: '1px solid #eef2f6' }}>
+                            <div className="candidate-main-info" style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: '1' }}>
+                                <div className="candidate-avatar" style={{
+                                    width: '56px',
+                                    height: '56px',
+                                    borderRadius: '14px',
                                     backgroundColor: '#eff6ff',
                                     color: '#3b82f6',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     fontWeight: '700',
-                                    fontSize: '18px',
-                                    overflow: 'hidden'
+                                    fontSize: '20px',
+                                    overflow: 'hidden',
+                                    flexShrink: 0,
+                                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.1)'
                                 }}>
                                     {candidate.avatar ? (
                                         <img src={candidate.avatar} alt={candidate.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -131,9 +152,9 @@ export default function CompanyCandidatesPage() {
                                         candidate.name.charAt(0).toUpperCase()
                                     )}
                                 </div>
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: 0 }}>{candidate.name}</h3>
+                                <div className="candidate-text-data">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                        <h3 style={{ fontSize: '17px', fontWeight: '700', color: '#111827', margin: 0 }}>{candidate.name}</h3>
                                         {candidate.matchScore > 0 && (
                                             <span style={{
                                                 display: 'flex',
@@ -150,70 +171,53 @@ export default function CompanyCandidatesPage() {
                                             </span>
                                         )}
                                     </div>
-                                    <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>{candidate.role} • {candidate.experience}</p>
-                                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Applied for <span style={{ color: '#4b5563', fontWeight: '600' }}>{candidate.jobApplied}</span></p>
+                                    <p style={{ fontSize: '14px', color: '#4b5563', margin: '2px 0', fontWeight: '500' }}>
+                                        {candidate.role}
+                                        <span style={{ margin: '0 8px', color: '#d1d5db' }}>•</span>
+                                        <span style={{ color: '#10b981' }}>{candidate.experience}</span>
+                                    </p>
+                                    <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0 0' }}>Applied for <span style={{ color: '#3b82f6', fontWeight: '600' }}>{candidate.jobApplied}</span></p>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                                <div style={{ textAlign: 'right' }}>
+                            <div className="candidate-actions-group" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                <div className="status-badge-container">
                                     <span style={{
-                                        padding: '4px 12px',
+                                        padding: '6px 14px',
                                         borderRadius: '99px',
                                         fontSize: '12px',
-                                        fontWeight: '600',
-                                        backgroundColor: ['Interview', 'INTERVIEW'].includes(candidate.status) ? '#eff6ff' : ['Offered', 'HIRED'].includes(candidate.status) ? '#ecfdf5' : '#f3f4f6',
-                                        color: ['Interview', 'INTERVIEW'].includes(candidate.status) ? '#3b82f6' : ['Offered', 'HIRED'].includes(candidate.status) ? '#10b981' : '#6b7280'
+                                        fontWeight: '700',
+                                        backgroundColor: ['Interview', 'INTERVIEW'].includes(candidate.status) ? '#eff6ff' : ['Offered', 'HIRED', 'Offered'].includes(candidate.status) ? '#ecfdf5' : '#f3f4f6',
+                                        color: ['Interview', 'INTERVIEW'].includes(candidate.status) ? '#3b82f6' : ['Offered', 'HIRED', 'Offered'].includes(candidate.status) ? '#10b981' : '#6b7280',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px'
                                     }}>
                                         {candidate.status}
                                     </span>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button style={{
-                                        width: '36px',
-                                        height: '36px',
-                                        borderRadius: '10px',
-                                        border: '1px solid #e5e7eb',
-                                        backgroundColor: 'white',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#6b7280',
-                                        cursor: 'pointer'
-                                    }}>
-                                        <Mail size={16} />
+                                <div className="candidate-buttons" style={{ display: 'flex', gap: '10px' }}>
+                                    <button className="btn-secondary" style={{ width: '40px', height: '40px', padding: 0, borderRadius: '10px' }} title="Send Email">
+                                        <Mail size={18} />
                                     </button>
-                                    <button style={{
-                                        width: '36px',
-                                        height: '36px',
-                                        borderRadius: '10px',
-                                        border: '1px solid #e5e7eb',
-                                        backgroundColor: 'white',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#6b7280',
-                                        cursor: 'pointer'
-                                    }}>
-                                        <Calendar size={16} />
+                                    <button className="btn-secondary" style={{ width: '40px', height: '40px', padding: 0, borderRadius: '10px' }} title="Schedule Interview">
+                                        <Calendar size={18} />
                                     </button>
-                                    <Link href={`/dashboard/company/candidates/${candidate.id}`} style={{
+                                    <Link href={`/dashboard/company/candidates/${candidate.id}`} className="btn-primary btn-profile" style={{
                                         textDecoration: 'none',
-                                        padding: '8px 16px',
+                                        padding: '0 20px',
+                                        height: '40px',
                                         borderRadius: '10px',
-                                        backgroundColor: '#3b82f6',
-                                        color: 'white',
-                                        fontSize: '13px',
+                                        fontSize: '14px',
                                         fontWeight: '600',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '4px'
+                                        gap: '8px'
                                     }}>
-                                        Profile <ArrowUpRight size={14} />
+                                        Profile <ArrowUpRight size={16} />
                                     </Link>
                                 </div>
-                                <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
-                                    <MoreHorizontal size={20} />
+                                <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '8px' }}>
+                                    <MoreHorizontal size={22} />
                                 </button>
                             </div>
                         </div>

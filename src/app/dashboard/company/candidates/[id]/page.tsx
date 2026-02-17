@@ -100,6 +100,7 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
             case 'HIRED': return { ...baseStyle, backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' };
             case 'INTERVIEW': return { ...baseStyle, backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #dbeafe' };
             case 'REJECTED': return { ...baseStyle, backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' };
+            case 'WITHDRAWN': return { ...baseStyle, backgroundColor: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb' };
             default: return { ...baseStyle, backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' };
         }
     };
@@ -114,7 +115,7 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
 
             {/* Header Profile Card */}
             <div className="card" style={{ padding: '32px', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', md: { flexDirection: 'row' }, gap: '24px', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'flex-start' }}>
 
                     {/* Key Info */}
                     <div style={{ display: 'flex', gap: '24px', flex: 1, flexWrap: 'wrap' }}>
@@ -136,11 +137,16 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                                     <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>
                                         {candidate?.name || 'Unknown Candidate'}
                                     </h1>
-                                    <p style={{ margin: 0, color: '#6b7280', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <p style={{ margin: 0, color: '#6b7280', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                         Applied for <span style={{ fontWeight: '600', color: '#374151' }}>{job?.title}</span>
                                         <span style={{ fontSize: '12px', padding: '2px 8px', backgroundColor: '#f3f4f6', borderRadius: '4px' }}>
                                             {job?.employmentType}
                                         </span>
+                                        {(job?.experienceMin !== undefined || job?.experienceMax !== undefined) && (
+                                            <span style={{ fontSize: '12px', padding: '2px 8px', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '4px', fontWeight: '600' }}>
+                                                {job.experienceMin}-{job.experienceMax} Yrs Exp Required
+                                            </span>
+                                        )}
                                     </p>
                                 </div>
 
@@ -184,15 +190,15 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                             <div>
                                 <label style={{ display: 'block', fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Current CTC</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', color: '#111827' }}>
-                                    <DollarSign size={16} style={{ color: '#9ca3af' }} />
-                                    {application.currentCTC || 'N/A'}
+                                    <span style={{ color: '#9ca3af', fontWeight: '400', fontSize: '13px' }}>{application.currentCurrency || 'USD'}</span>
+                                    {application.currentCTC && application.currentCTC !== '0' ? application.currentCTC : 'Not Provided'}
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Expected CTC</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', color: '#111827' }}>
-                                    <DollarSign size={16} style={{ color: '#9ca3af' }} />
-                                    {application.expectedCTC || 'N/A'}
+                                    <span style={{ color: '#9ca3af', fontWeight: '400', fontSize: '13px' }}>{application.expectedCurrency || 'USD'}</span>
+                                    {application.expectedCTC && application.expectedCTC !== '0' ? application.expectedCTC : 'Not Provided'}
                                 </div>
                             </div>
                             <div>
@@ -249,45 +255,53 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                 <div style={{ flex: '1 1 300px', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                     {/* Status Management */}
-                    <div className="card" style={{ padding: '24px' }}>
+                    <div className="card" style={{ padding: '24px', opacity: application.status === 'WITHDRAWN' ? 0.6 : 1 }}>
                         <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '600', color: '#111827' }}>Update Status</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <button
-                                onClick={() => handleStatusUpdate('INTERVIEW')}
-                                disabled={statusUpdating}
-                                style={{
-                                    padding: '12px', borderRadius: '8px', border: '1px solid #dbeafe',
-                                    backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: '600', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                                }}
-                            >
-                                <Calendar size={18} /> Move to Interview
-                            </button>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <button
-                                    onClick={() => handleStatusUpdate('HIRED')}
-                                    disabled={statusUpdating}
-                                    style={{
-                                        padding: '12px', borderRadius: '8px', border: '1px solid #bbf7d0',
-                                        backgroundColor: '#f0fdf4', color: '#166534', fontWeight: '600', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                                    }}
-                                >
-                                    <CheckCircle2 size={18} /> Hire
-                                </button>
-                                <button
-                                    onClick={() => handleStatusUpdate('REJECTED')}
-                                    disabled={statusUpdating}
-                                    style={{
-                                        padding: '12px', borderRadius: '8px', border: '1px solid #fecaca',
-                                        backgroundColor: '#fef2f2', color: '#991b1b', fontWeight: '600', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                                    }}
-                                >
-                                    <XCircle size={18} /> Reject
-                                </button>
+                        {application.status === 'WITHDRAWN' ? (
+                            <div style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
+                                    Application Withdrawn by Candidate
+                                </p>
                             </div>
-                        </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <button
+                                    onClick={() => handleStatusUpdate('INTERVIEW')}
+                                    disabled={statusUpdating}
+                                    style={{
+                                        padding: '12px', borderRadius: '8px', border: '1px solid #dbeafe',
+                                        backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: '600', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                    }}
+                                >
+                                    <Calendar size={18} /> Move to Interview
+                                </button>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <button
+                                        onClick={() => handleStatusUpdate('HIRED')}
+                                        disabled={statusUpdating}
+                                        style={{
+                                            padding: '12px', borderRadius: '8px', border: '1px solid #bbf7d0',
+                                            backgroundColor: '#f0fdf4', color: '#166534', fontWeight: '600', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                        }}
+                                    >
+                                        <CheckCircle2 size={18} /> Hire
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusUpdate('REJECTED')}
+                                        disabled={statusUpdating}
+                                        style={{
+                                            padding: '12px', borderRadius: '8px', border: '1px solid #fecaca',
+                                            backgroundColor: '#fef2f2', color: '#991b1b', fontWeight: '600', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                        }}
+                                    >
+                                        <XCircle size={18} /> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Social Links (Placeholder as User schema lacks them, but UI requested it) */}

@@ -84,9 +84,54 @@ export async function GET(req: Request) {
 
         const candidateMap = new Map(candidates.map(c => [c.clerkId, c]));
 
-        const enrichedApplications = verified.map(app => ({
-            ...app,
-            candidate: candidateMap.get(app.candidateId) || { name: 'Unknown Candidate', email: 'N/A', profileImageUrl: null }
+        // 6. 🛡️ DATA RECOVERY: If any candidates are missing from DB, fetch from Clerk
+        const enrichedApplications = await Promise.all(verified.map(async (app) => {
+            let candidate = candidateMap.get(app.candidateId);
+
+            if (!candidate) {
+                console.log(`[API] Candidate ${app.candidateId} missing from local DB, fetching from Clerk...`);
+                try {
+                    const { clerkClient } = await import('@clerk/nextjs/server');
+                    const cClient = await clerkClient();
+                    const clerkUser = await cClient.users.getUser(app.candidateId);
+
+                    if (clerkUser) {
+                        candidate = {
+                            clerkId: clerkUser.id,
+                            name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || 'Anonymous Candidate',
+                            email: clerkUser.emailAddresses[0]?.emailAddress || 'N/A',
+                            profileImageUrl: clerkUser.imageUrl
+                        } as any;
+
+                        // Optional: Proactively sync to DB
+                        const syncName = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || 'Anonymous Candidate';
+                        const syncEmail = clerkUser.emailAddresses[0]?.emailAddress || 'N/A';
+
+                        await prisma.user.upsert({
+                            where: { clerkId: clerkUser.id },
+                            update: {
+                                name: syncName,
+                                email: syncEmail,
+                                profileImageUrl: clerkUser.imageUrl
+                            },
+                            create: {
+                                clerkId: clerkUser.id,
+                                name: syncName,
+                                email: syncEmail,
+                                profileImageUrl: clerkUser.imageUrl,
+                                userRole: 'CANDIDATE'
+                            }
+                        }).catch(e => console.error('[API] Auto-sync failed:', e));
+                    }
+                } catch (clerkError) {
+                    console.error(`[API] Failed to fetch candidate ${app.candidateId} from Clerk:`, clerkError);
+                }
+            }
+
+            return {
+                ...app,
+                candidate: candidate || { name: 'Unknown Candidate', email: 'N/A', profileImageUrl: null }
+            };
         }));
 
         console.log(`[API] Found ${verified.length} applications for company ${userId}`);
