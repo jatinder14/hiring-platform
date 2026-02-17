@@ -55,11 +55,20 @@ export function HowItWorks() {
         </aside>
 
         <div className="hiw-right">
-          <div className="hiw-preview">
+          <div
+            className="hiw-preview"
+            style={{
+              border: "1px solid rgba(165, 186, 214, 0.34)",
+              background: "rgba(6, 10, 16, 0.82)",
+              minHeight: "min(58vh, 560px)",
+            }}
+          >
             <img
               key={current.image}
               src={current.image}
               alt={current.title}
+              loading="eager"
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
                 const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;

@@ -32,7 +32,15 @@ export function HomeClient() {
   const msg2Ref = useRef<HTMLElement | null>(null);
   const exitTriggerRef = useRef<HTMLElement | null>(null);
   const statsRef = useRef<HTMLElement | null>(null);
+  const companyMarkerRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [statsOn, setStatsOn] = useState(false);
+  const [companyMsgIdx, setCompanyMsgIdx] = useState(0);
+
+  const COMPANY_MESSAGES = [
+    "The complete human data engine for the world's most ambitious AI.",
+    "We combine AI precision with human insight to shortlist top talent faster.",
+    "Trusted by growing teams to turn hiring into a clear competitive edge.",
+  ];
 
   useEffect(() => {
     const el = statsRef.current;
@@ -44,6 +52,23 @@ export function HomeClient() {
       { threshold: 0.45 }
     );
     io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const refs = companyMarkerRefs.current.filter(Boolean) as HTMLDivElement[];
+    if (!refs.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const idx = Number((entry.target as HTMLDivElement).dataset.msg);
+          if (!Number.isNaN(idx)) setCompanyMsgIdx(idx);
+        });
+      },
+      { root: null, threshold: 0.15, rootMargin: "-47% 0px -47% 0px" }
+    );
+    refs.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
 
@@ -198,6 +223,30 @@ export function HomeClient() {
                           loading="lazy"
                         />
                       </article>
+                      <article className="review-card">
+                        <div className="review-card-copy">
+                          <p>"Cross-region recruiting became predictable after switching to HIREU."</p>
+                          <span>Head of Hiring, SaaS</span>
+                        </div>
+                        <img
+                          className="review-avatar"
+                          src="https://static.vecteezy.com/system/resources/thumbnails/047/462/750/small/positive-man-on-clean-background-photo.jpg"
+                          alt="Reviewer profile"
+                          loading="lazy"
+                        />
+                      </article>
+                      <article className="review-card">
+                        <div className="review-card-copy">
+                          <p>"Clear insights, faster interviews, and stronger role fit from day one."</p>
+                          <span>Recruitment Manager, Enterprise</span>
+                        </div>
+                        <img
+                          className="review-avatar"
+                          src="https://img.freepik.com/premium-photo/ai-human-avatar-characters-male-model_1166271-38.jpg"
+                          alt="Reviewer profile"
+                          loading="lazy"
+                        />
+                      </article>
                     </div>
                   </div>
                 </div>
@@ -209,6 +258,31 @@ export function HomeClient() {
         </section>
 
         <HowItWorks />
+
+        <section className="company-story" aria-label="About our company">
+          <div className="company-story-sticky">
+            <div className={`company-message-shell msg-step-${companyMsgIdx}`}>
+              <div className="company-message-text" aria-live="polite">
+                <p key={companyMsgIdx} className="company-message-line">
+                  {COMPANY_MESSAGES[companyMsgIdx]}
+                </p>
+              </div>
+              <div className="company-message-bottom-line" aria-hidden="true" />
+            </div>
+          </div>
+          <div className="company-story-markers" aria-hidden="true">
+            {COMPANY_MESSAGES.map((_, idx) => (
+              <div
+                key={idx}
+                className="company-story-marker"
+                data-msg={idx}
+                ref={(el) => {
+                  companyMarkerRefs.current[idx] = el;
+                }}
+              />
+            ))}
+          </div>
+        </section>
 
         <section className="wave-section" aria-label="3D wireframe wave">
           <img src="/waves/wireframe-wave.jpg" alt="Futuristic wireframe landscape" />
