@@ -36,7 +36,7 @@ export function HeroNav() {
     }
 
     // Set cookie to remember role (valid for 1 hour for login process)
-    document.cookie = `login_role=${role}; path=/; max-age=3600`;
+    document.cookie = `login_role=${role}; path=/; max-age=3600; Secure; SameSite=Strict`;
 
     // Force sign out to ensure fresh session with new role
     await signOut({ redirect: false });

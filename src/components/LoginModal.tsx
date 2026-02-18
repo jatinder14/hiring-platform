@@ -31,8 +31,8 @@ export function LoginModal({ isOpen, onClose, role }: LoginModalProps) {
 
   const callbackUrl = role === "recruiter" ? "/dashboard/company" : "/dashboard/jobs";
 
-  const handleOAuth = (provider: string) => {
-    signIn(provider, { callbackUrl });
+  const handleOAuth = async (provider: string) => {
+    await signIn(provider, { callbackUrl });
   };
 
   return (
