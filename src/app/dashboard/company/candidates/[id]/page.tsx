@@ -24,6 +24,49 @@ import {
     XCircle
 } from 'lucide-react';
 
+function RenderMotivation({ content }: { content: string }) {
+    let blocks;
+    try {
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.blocks)) {
+            blocks = parsed.blocks;
+        }
+    } catch (e) { }
+
+    if (!blocks) {
+        return <div dangerouslySetInnerHTML={{ __html: content }} />;
+    }
+
+    return (
+        <div className="prose prose-sm max-w-none">
+            {blocks.map((block: any) => {
+                switch (block.type) {
+                    case 'header':
+                        const Tag = `h${block.data.level}` as any;
+                        return <Tag key={block.id} className="font-bold my-2" style={{ fontSize: block.data.level === 1 ? '1.5em' : block.data.level === 2 ? '1.25em' : '1.1em' }}>{block.data.text}</Tag>;
+                    case 'paragraph':
+                        return <p key={block.id} className="my-2" dangerouslySetInnerHTML={{ __html: block.data.text }} />;
+                    case 'list':
+                        const ListTag = block.data.style === 'ordered' ? 'ol' : 'ul';
+                        return (
+                            <ListTag key={block.id} className="list-inside my-2" style={{ listStyleType: block.data.style === 'ordered' ? 'decimal' : 'disc', paddingLeft: '20px' }}>
+                                {block.data.items.map((item: string, i: number) => (
+                                    <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
+                                ))}
+                            </ListTag>
+                        );
+                    case 'quote':
+                        return <blockquote key={block.id} className="border-l-4 border-gray-300 pl-4 italic my-2" dangerouslySetInnerHTML={{ __html: block.data.text }} />;
+                    case 'delimiter':
+                        return <div key={block.id} className="my-4 text-center">***</div>;
+                    default:
+                        return null;
+                }
+            })}
+        </div>
+    );
+}
+
 export default function CandidateProfilePage({ params }: { params: { id: string } }) {
     const [application, setApplication] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -247,7 +290,7 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                             <div style={{ marginTop: '24px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>Motivation / Cover Letter</label>
                                 <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', color: '#4b5563', fontSize: '14px', lineHeight: '1.6' }}>
-                                    {application.motivation}
+                                    <RenderMotivation content={application.motivation} />
                                 </div>
                             </div>
                         )}

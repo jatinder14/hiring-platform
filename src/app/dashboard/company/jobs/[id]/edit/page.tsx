@@ -369,23 +369,72 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '16px', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
+                    {/* Actions */}
+                    <div className="form-actions-container">
                         <Link
                             href="/dashboard/company/jobs"
-                            style={{ padding: '10px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: '500', color: '#4b5563' }}
+                            className="btn-responsive"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '48px',
+                                padding: '0 24px',
+                                borderRadius: '8px',
+                                textDecoration: 'none',
+                                fontWeight: '600',
+                                color: '#374151',
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #d1d5db',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                transition: 'all 0.2s'
+                            }}
                         >
                             Cancel
                         </Link>
                         <button
                             type="submit"
                             disabled={saving}
-                            className="btn-primary"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', opacity: saving ? 0.7 : 1 }}
+                            className="btn-primary btn-responsive"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '48px',
+                                padding: '0 24px',
+                                borderRadius: '8px',
+                                fontWeight: '600',
+                                gap: '8px',
+                                opacity: saving ? 0.7 : 1,
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            }}
                         >
                             {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                             Save Changes
                         </button>
                     </div>
+
+                    <style jsx>{`
+                        .form-actions-container {
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 12px;
+                            padding-top: 24px;
+                            margin-top: 12px;
+                            border-top: 1px solid #f3f4f6;
+                        }
+
+                        @media (max-width: 768px) {
+                            .form-actions-container {
+                                flex-direction: column;
+                                gap: 12px;
+                            }
+                            /* Use global selector strategy or specific class to force width */
+                            :global(.btn-responsive) {
+                                width: 100% !important;
+                            }
+                        }
+                    `}</style>
                 </form>
             </div>
         </div>
