@@ -33,23 +33,21 @@ export async function POST(req: Request) {
         console.log('[API] Attempting to create application...');
 
         // Try to create the application directly without checking if job exists first
+        // Check if job exists first
+        const job = await prisma.job.findUnique({
+            where: { id: jobId }
+        });
+
+        if (!job) {
+            console.log('[API] Job not found:', jobId);
+            return NextResponse.json({ error: "Job not found" }, { status: 404 });
+        }
+
         try {
             const application = await prisma.application.create({
                 data: {
                     job: {
-                        connectOrCreate: {
-                            where: { id: jobId },
-                            create: {
-                                id: jobId,
-                                title: "Sample Job",
-                                company: "Sample Company",
-                                location: "Remote",
-                                description: "Auto-generated placeholder job",
-                                employmentType: "Full Time",
-                                category: "Engineering",
-                                skills: [],
-                            }
-                        }
+                        connect: { id: jobId }
                     },
                     candidateId: userId,
                     resumeUrl: resumeUrl,

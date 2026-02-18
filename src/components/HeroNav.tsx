@@ -10,9 +10,9 @@ import { User, LogOut } from "lucide-react";
 
 const navLinks = [
   { href: "#story", label: "Success Stories" },
-  { href: "#story", label: "Blogs" },
-  { href: "#story", label: "Pricing" },
-  { href: "#story", label: "Contact" },
+  { href: "#domains", label: "Blogs" }, // Placeholder: pointing to Domains section for now
+  { href: "#pricing", label: "Pricing" }, // Placeholder
+  { href: "#hireu", label: "Contact" }, // Pointing to HireU (footer/CTA)
 ];
 
 export function HeroNav() {

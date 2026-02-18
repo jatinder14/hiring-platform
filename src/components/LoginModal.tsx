@@ -21,6 +21,10 @@ export function LoginModal({ isOpen, onClose, role }: LoginModalProps) {
       document.body.style.overflow = "";
       return () => clearTimeout(timer);
     }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   if (!isVisible && !isOpen) return null;

@@ -103,13 +103,7 @@ main {
   justify-content: center;
 }
 
-.auth-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(24px);
-  border: 1px solid #fff;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  border-radius: 32px;
-}
+
 
 /* Hide Clerk Optional labels */
 .cl-formFieldLabel__optional,
@@ -267,7 +261,6 @@ main {
 .hn-burger {
   display: none;
   margin-left: auto;
-  border: none;
   cursor: pointer;
   padding: 12px 12px;
   border-radius: 16px;
@@ -664,7 +657,6 @@ body.tree-exit .tree-layer {
 }
 
 .dom-tab {
-  border: none;
   cursor: pointer;
   padding: 10px 14px;
   border-radius: 999px;
@@ -1326,11 +1318,7 @@ body.tree-exit .tree-layer {
   color: #fff;
 }
 
-/* User Dropdown */
-.user-dropdown-container {
-  position: relative;
-  display: inline-block;
-}
+
 
 .user-dropdown-btn {
   display: flex;
@@ -1418,11 +1406,7 @@ body.tree-exit .tree-layer {
   padding: 12px 16px;
 }
 
-.user-dropdown-name {
-  font-weight: 700;
-  color: #fff;
-  font-size: 14px;
-}
+
 
 .user-dropdown-email {
   font-size: 12px;
@@ -1431,41 +1415,4 @@ body.tree-exit .tree-layer {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.user-dropdown-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.08);
-  margin: 8px 0;
-}
-
-.user-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 16px;
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-}
-
-.user-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-.user-dropdown-item.logout {
-  color: #ff6b6b;
-}
-
-.user-dropdown-item.logout:hover {
-  background: rgba(255, 107, 107, 0.1);
 }
