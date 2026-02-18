@@ -3,6 +3,8 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import LinkedInProvider from "next-auth/providers/linkedin";
 import { cookies } from "next/headers";
+import prisma from "./db";
+import { UserRole } from "@prisma/client";
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -28,21 +30,41 @@ export const authOptions: NextAuthOptions = {
     ],
     callbacks: {
         jwt: async ({ token, user, trigger }) => {
-            // If user is signing in, try to get role from cookie or existing user
-            if (user) {
-                // Try to read role from cookie
-                const roleCookie = cookies().get("login_role")?.value;
-                if (roleCookie === "recruiter" || roleCookie === "candidate") {
-                    token.role = roleCookie;
+            if (user && user.email) {
+                // Check if user exists in DB
+                let dbUser = await prisma.user.findUnique({
+                    where: { email: user.email },
+                });
+
+                // If new user, create record with role from cookie (or default)
+                if (!dbUser) {
+                    const roleCookie = cookies().get("login_role")?.value;
+                    let initialRole: UserRole = UserRole.CANDIDATE;
+
+                    if (roleCookie === "recruiter") {
+                        initialRole = UserRole.CLIENT;
+                    }
+
+                    dbUser = await prisma.user.create({
+                        data: {
+                            email: user.email,
+                            name: user.name,
+                            profileImageUrl: user.image,
+                            userRole: initialRole,
+                        }
+                    });
                 }
-                // If we had a DB adapter, we would update the user's role here
-                // user.role = token.role; 
+
+                // Always use the role from the database
+                token.role = dbUser.userRole === UserRole.CLIENT ? "recruiter" : "candidate";
+                token.id = dbUser.id;
             }
             return token;
         },
         session: async ({ session, token }) => {
             if (session.user) {
-                session.user.id = token.sub!;
+                // @ts-ignore
+                session.user.id = token.id as string;
                 // @ts-ignore
                 session.user.role = token.role;
             }
