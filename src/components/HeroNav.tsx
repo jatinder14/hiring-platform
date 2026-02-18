@@ -16,11 +16,13 @@ const navLinks = [
 ];
 
 export function HeroNav() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"recruiter" | "candidate" | null>(null);
+
+  const userRole = session?.user?.role;
 
   const handleLoginClick = async (role: "recruiter" | "candidate") => {
     // If authenticated, redirect to dashboard
@@ -80,12 +82,16 @@ export function HeroNav() {
 
             {status === "authenticated" && (
               <>
-                <button onClick={() => handleLoginClick("recruiter")} className="hn-btn ghost">
-                  Hire a Talent
-                </button>
-                <button onClick={() => handleLoginClick("candidate")} className="hn-btn">
-                  Find a Job
-                </button>
+                {(!userRole || userRole === 'recruiter') && (
+                  <button onClick={() => handleLoginClick("recruiter")} className="hn-btn ghost">
+                    Hire a Talent
+                  </button>
+                )}
+                {(!userRole || userRole === 'candidate') && (
+                  <button onClick={() => handleLoginClick("candidate")} className="hn-btn">
+                    Find a Job
+                  </button>
+                )}
                 <UserDropdown />
               </>
             )}
@@ -126,24 +132,28 @@ export function HeroNav() {
                 <LogOut size={16} style={{ display: 'inline', marginRight: '8px' }} /> Logout
               </button>
               <div className="hn-drawer-actions">
-                <button
-                  onClick={() => {
-                    handleLoginClick("recruiter");
-                    setDrawerOpen(false);
-                  }}
-                  className="hn-btn ghost"
-                >
-                  Hire a Talent
-                </button>
-                <button
-                  onClick={() => {
-                    handleLoginClick("candidate");
-                    setDrawerOpen(false);
-                  }}
-                  className="hn-btn"
-                >
-                  Find a Job
-                </button>
+                {(!userRole || userRole === 'recruiter') && (
+                  <button
+                    onClick={() => {
+                      handleLoginClick("recruiter");
+                      setDrawerOpen(false);
+                    }}
+                    className="hn-btn ghost"
+                  >
+                    Hire a Talent
+                  </button>
+                )}
+                {(!userRole || userRole === 'candidate') && (
+                  <button
+                    onClick={() => {
+                      handleLoginClick("candidate");
+                      setDrawerOpen(false);
+                    }}
+                    className="hn-btn"
+                  >
+                    Find a Job
+                  </button>
+                )}
               </div>
             </>
           ) : (
