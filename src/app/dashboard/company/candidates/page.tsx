@@ -260,8 +260,28 @@ export default function CompanyCandidatesPage() {
                                 </div>
 
                                 <div className="candidate-main-info">
-                                    <div className="candidate-name-row">
-                                        <h3>{candidate.name}</h3>
+                                    <div className="candidate-name-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                        <h3 style={{ margin: 0 }}>{candidate.name}</h3>
+                                        <span
+                                            className={`status-badge ${['INTERVIEW', 'SHORTLISTED', 'APPLIED'].includes(candidate.status) ? 'active' :
+                                                candidate.status === 'WITHDRAWN' ? 'withdrawn' : 'inactive'
+                                                }`}
+                                            style={{
+                                                fontSize: '10px',
+                                                padding: '4px 10px',
+                                                borderRadius: '99px',
+                                                fontWeight: '700',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                height: 'fit-content'
+                                            }}
+                                        >
+                                            {candidate.status === 'APPLIED' ? 'ACTIVE' :
+                                                candidate.status === 'SHORTLISTED' ? 'SHORTLISTED' :
+                                                    candidate.status === 'INTERVIEW' ? 'INTERVIEW' : candidate.status}
+                                        </span>
                                     </div>
                                     <span className="candidate-email-text">{candidate.role}</span>
 
@@ -291,13 +311,7 @@ export default function CompanyCandidatesPage() {
 
                             {/* Right Side: Status & Actions */}
                             <div className="candidate-actions-right">
-                                <div className={`status-badge ${['INTERVIEW', 'SHORTLISTED', 'APPLIED'].includes(candidate.status) ? 'active' :
-                                    candidate.status === 'WITHDRAWN' ? 'withdrawn' : 'inactive'
-                                    }`}>
-                                    {candidate.status === 'APPLIED' ? 'Active' :
-                                        candidate.status === 'SHORTLISTED' ? 'Shortlisted' :
-                                            candidate.status === 'INTERVIEW' ? 'Interview' : candidate.status}
-                                </div>
+
 
                                 <div className="action-tools">
                                     <div className="icon-row">
