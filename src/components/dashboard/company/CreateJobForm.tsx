@@ -78,7 +78,7 @@ export default function CreateJobForm() {
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
             console.log("Submitting Job:", formData);
-            router.push('/dashboard/company/jobs');
+            router.push('/dashboard/talent/jobs');
         } catch (error) {
             console.error("Failed to post job", error);
         } finally {

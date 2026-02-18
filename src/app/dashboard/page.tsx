@@ -7,7 +7,7 @@ export default async function DashboardPage() {
     const isCompany = session?.user?.role === 'recruiter';
 
     if (isCompany) {
-        redirect('/dashboard/company');
+        redirect('/dashboard/talent');
     } else {
         redirect('/dashboard/jobs');
     }

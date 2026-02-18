@@ -15,13 +15,13 @@ import {
 import { signOut } from "next-auth/react";
 
 const menuItems = [
-    { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard/company' },
-    { label: 'Create Job', icon: PlusCircle, href: '/dashboard/company/create-job' },
-    { label: 'Jobs', icon: Briefcase, href: '/dashboard/company/jobs' },
-    { label: 'Candidates', icon: Users, href: '/dashboard/company/candidates' },
-    { label: 'Interviews', icon: Video, href: '/dashboard/company/interviews' },
-    { label: 'Analytics', icon: BarChart, href: '/dashboard/company/analytics' },
-    { label: 'Settings', icon: Settings, href: '/dashboard/company/settings' },
+    { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard/talent' },
+    { label: 'Create Job', icon: PlusCircle, href: '/dashboard/talent/create-job' },
+    { label: 'Jobs', icon: Briefcase, href: '/dashboard/talent/jobs' },
+    { label: 'Candidates', icon: Users, href: '/dashboard/talent/candidates' },
+    { label: 'Interviews', icon: Video, href: '/dashboard/talent/interviews' },
+    { label: 'Analytics', icon: BarChart, href: '/dashboard/talent/analytics' },
+    { label: 'Settings', icon: Settings, href: '/dashboard/talent/settings' },
 ];
 
 export default function CompanySidebar() {
@@ -32,7 +32,7 @@ export default function CompanySidebar() {
             {/* Desktop Sidebar */}
             <aside className="sidebar company-sidebar">
                 <div className="sidebar-header">
-                    <Link href="/dashboard/company" className="brand">
+                    <Link href="/dashboard/talent" className="brand">
                         <span className="brand-icon company">HU</span>
                         HireU <small className="text-xs ml-1 text-gray-400">Corporations</small>
                     </Link>
@@ -40,7 +40,7 @@ export default function CompanySidebar() {
 
                 <nav className="sidebar-nav">
                     {menuItems.map((item) => {
-                        const isActive = pathname === item.href || (item.href !== '/dashboard/company' && pathname.startsWith(item.href));
+                        const isActive = pathname === item.href || (item.href !== '/dashboard/talent' && pathname.startsWith(item.href));
                         return (
                             <Link
                                 key={item.href}
@@ -65,7 +65,7 @@ export default function CompanySidebar() {
             {/* Mobile Bottom Navigation - Adapted for Company */}
             <nav className="mobile-bottom-nav">
                 {menuItems.slice(0, 4).map((item) => {
-                    const isActive = pathname === item.href || (item.href !== '/dashboard/company' && pathname.startsWith(item.href));
+                    const isActive = pathname === item.href || (item.href !== '/dashboard/talent' && pathname.startsWith(item.href));
                     return (
                         <Link
                             key={item.href}

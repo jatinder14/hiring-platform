@@ -11,7 +11,7 @@ export default function CompanyDashboardPage() {
                     <p className="page-subtitle">Overview of your hiring pipeline and activity.</p>
                 </div>
                 <Link
-                    href="/dashboard/company/create-job"
+                    href="/dashboard/talent/create-job"
                     className="btn-primary"
                 >
                     <Plus size={18} />
@@ -33,7 +33,7 @@ export default function CompanyDashboardPage() {
                         <span className="stat-label">Active Jobs</span>
                     </div>
                     <div className="stat-footer">
-                        <Link href="/dashboard/company/jobs" className="stat-link">
+                        <Link href="/dashboard/talent/jobs" className="stat-link">
                             View all jobs <ChevronRight size={14} />
                         </Link>
                     </div>
@@ -51,7 +51,7 @@ export default function CompanyDashboardPage() {
                         <span className="stat-label">Total Candidates</span>
                     </div>
                     <div className="stat-footer">
-                        <Link href="/dashboard/company/candidates" className="stat-link">
+                        <Link href="/dashboard/talent/candidates" className="stat-link">
                             View applications <ChevronRight size={14} />
                         </Link>
                     </div>

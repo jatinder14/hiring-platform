@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from '@prisma/client';
-
-// Direct instantiation for debugging
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 export async function POST(req: Request) {
     console.log('[API] POST / api/applications - Request received');
@@ -20,13 +17,14 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        console.log("[API] Request body:", JSON.stringify(body, null, 2));
+        // Request body parsed
+
 
         const { jobId, resumeUrl, motivation, currentCTC, expectedCTC, noticePeriod, city } = body;
 
         // Validate required fields
         if (!jobId || !resumeUrl) {
-            console.log('[API] Missing required fields:', { jobId, resumeUrl });
+            console.log('[API] Missing required fields');
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
@@ -43,6 +41,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Job not found" }, { status: 404 });
         }
 
+        // Check for existing application
+        const existingApplication = await prisma.application.findFirst({
+            where: {
+                jobId: jobId,
+                candidateId: userId
+            }
+        });
+
+        if (existingApplication) {
+            console.log('[API] Duplicate application attempt:', { jobId, userId });
+            return NextResponse.json({ error: "You have already applied to this job" }, { status: 409 });
+        }
+
         try {
             const application = await prisma.application.create({
                 data: {
@@ -52,10 +63,10 @@ export async function POST(req: Request) {
                     candidateId: userId,
                     resumeUrl: resumeUrl,
                     motivation: motivation ? JSON.stringify(motivation) : null,
-                    currentCTC: currentCTC || null,
-                    expectedCTC: expectedCTC || null,
-                    noticePeriod: noticePeriod || null,
-                    city: city || null,
+                    currentCTC: currentCTC ?? null,
+                    expectedCTC: expectedCTC ?? null,
+                    noticePeriod: noticePeriod ?? null,
+                    city: city ?? null,
                     status: "APPLIED"
                 }
             });
@@ -73,8 +84,7 @@ export async function POST(req: Request) {
 
             return NextResponse.json({
                 error: "Database error",
-                details: prismaError.message,
-                code: prismaError.code
+                details: "An error occurred while saving your application."
             }, { status: 500 });
         }
 
@@ -87,8 +97,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             error: "Failed to submit application",
-            details: error.message,
-            type: error.name
+            details: "An unexpected error occurred."
         }, { status: 500 });
     }
 }
@@ -117,7 +126,7 @@ export async function GET(req: Request) {
         console.error("[API] Error in GET /api/applications:", error);
         return NextResponse.json({
             error: "Failed to fetch applications",
-            details: error.message
+            details: "An error occurred while retrieving your applications."
         }, { status: 500 });
     }
 }

@@ -1,4 +1,4 @@
-const CURRENCIES = [
+export const CURRENCIES = [
     // Major Global Currencies
     { country: 'United States', name: 'US Dollar', code: 'USD', symbol: '$' },
     { country: 'European Union', name: 'Euro', code: 'EUR', symbol: '€' },
@@ -6,7 +6,7 @@ const CURRENCIES = [
     { country: 'India', name: 'Indian Rupee', code: 'INR', symbol: '₹' },
     { country: 'Japan', name: 'Japanese Yen', code: 'JPY', symbol: '¥' },
     { country: 'China', name: 'Chinese Yuan', code: 'CNY', symbol: '¥' },
-    
+
     // Americas
     { country: 'Canada', name: 'Canadian Dollar', code: 'CAD', symbol: 'C$' },
     { country: 'Brazil', name: 'Brazilian Real', code: 'BRL', symbol: 'R$' },
@@ -15,7 +15,7 @@ const CURRENCIES = [
     { country: 'Chile', name: 'Chilean Peso', code: 'CLP', symbol: '$' },
     { country: 'Colombia', name: 'Colombian Peso', code: 'COP', symbol: '$' },
     { country: 'Peru', name: 'Peruvian Sol', code: 'PEN', symbol: 'S/' },
-    
+
     // Europe
     { country: 'Switzerland', name: 'Swiss Franc', code: 'CHF', symbol: 'CHF' },
     { country: 'Sweden', name: 'Swedish Krona', code: 'SEK', symbol: 'kr' },
@@ -27,7 +27,7 @@ const CURRENCIES = [
     { country: 'Romania', name: 'Romanian Leu', code: 'RON', symbol: 'lei' },
     { country: 'Russia', name: 'Russian Ruble', code: 'RUB', symbol: '₽' },
     { country: 'Turkey', name: 'Turkish Lira', code: 'TRY', symbol: '₺' },
-    
+
     // Asia-Pacific
     { country: 'Australia', name: 'Australian Dollar', code: 'AUD', symbol: 'A$' },
     { country: 'New Zealand', name: 'New Zealand Dollar', code: 'NZD', symbol: 'NZ$' },
@@ -43,7 +43,7 @@ const CURRENCIES = [
     { country: 'Pakistan', name: 'Pakistani Rupee', code: 'PKR', symbol: '₨' },
     { country: 'Bangladesh', name: 'Bangladeshi Taka', code: 'BDT', symbol: '৳' },
     { country: 'Sri Lanka', name: 'Sri Lankan Rupee', code: 'LKR', symbol: 'Rs' },
-    
+
     // Middle East & Africa
     { country: 'United Arab Emirates', name: 'UAE Dirham', code: 'AED', symbol: 'د.إ' },
     { country: 'Saudi Arabia', name: 'Saudi Riyal', code: 'SAR', symbol: '﷼' },
@@ -56,7 +56,7 @@ const CURRENCIES = [
     { country: 'South Africa', name: 'South African Rand', code: 'ZAR', symbol: 'R' },
     { country: 'Nigeria', name: 'Nigerian Naira', code: 'NGN', symbol: '₦' },
     { country: 'Kenya', name: 'Kenyan Shilling', code: 'KES', symbol: 'KSh' },
-    
+
     // Other Important Currencies
     { country: 'Iraq', name: 'Iraqi Dinar', code: 'IQD', symbol: 'ع.د' },
     { country: 'Jordan', name: 'Jordanian Dinar', code: 'JOD', symbol: 'د.ا' },

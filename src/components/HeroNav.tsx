@@ -30,13 +30,15 @@ export function HeroNav() {
       if (role === "candidate") {
         router.push("/dashboard/jobs");
       } else {
-        router.push("/dashboard/company");
+        router.push("/dashboard/talent");
       }
       return;
     }
 
-    // Set cookie to remember role (valid for 1 hour for login process)
-    document.cookie = `login_role=${role}; path=/; max-age=3600; Secure; SameSite=Strict`;
+    // Set cookie to remember role (valid for 1 hour). Use Lax for OAuth redirects.
+    // We check if we are in production to add Secure, otherwise skip it for localhost http.
+    const isProduction = process.env.NODE_ENV === 'production';
+    document.cookie = `login_role=${role}; path=/; max-age=3600; SameSite=Lax${isProduction ? '; Secure' : ''}`;
 
     // Force sign out to ensure fresh session with new role
     await signOut({ redirect: false });

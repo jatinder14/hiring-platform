@@ -8,27 +8,28 @@ export default withAuth(
         const role = token?.role as string | undefined;
 
         // 1. Protect Candidate Routes
-        if (path.startsWith("/dashboard/jobs")) {
+        if (
+            path.startsWith("/dashboard/jobs") ||
+            path.startsWith("/dashboard/applications")
+        ) {
             if (role !== "candidate") {
-                // If recruiter tries to access candidate route, redirect to their dashboard
                 if (role === "recruiter") {
-                    return NextResponse.redirect(new URL("/dashboard/company", req.url));
+                    return NextResponse.redirect(new URL("/dashboard/talent", req.url));
                 }
-                // Otherwise redirect to home
                 return NextResponse.redirect(new URL("/", req.url));
             }
         }
 
         // 2. Protect Employer/Recruiter Routes
-        // Note: Assuming '/dashboard/company' or '/dashboard/talent' maps to recruiter dashboard.
-        // Based on HeroNav, it seems to be '/dashboard/company'.
-        if (path.startsWith("/dashboard/company") || path.startsWith("/dashboard/talent")) {
+        if (
+            path.startsWith("/dashboard/talent") ||
+            path.startsWith("/dashboard/company") ||
+            path.startsWith("/dashboard/candidates")
+        ) {
             if (role !== "recruiter") {
-                // If candidate tries to access recruiter route, redirect to their dashboard
                 if (role === "candidate") {
                     return NextResponse.redirect(new URL("/dashboard/jobs", req.url));
                 }
-                // Otherwise redirect to home
                 return NextResponse.redirect(new URL("/", req.url));
             }
         }

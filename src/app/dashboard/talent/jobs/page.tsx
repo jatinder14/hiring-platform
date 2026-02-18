@@ -18,7 +18,7 @@ export default function JobsPage() {
                     <p className="text-gray-500 mt-1">Manage your job postings and view applications.</p>
                 </div>
                 <Link
-                    href="/dashboard/company/create-job"
+                    href="/dashboard/talent/create-job"
                     className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-md shadow-blue-100"
                 >
                     + Post New Job

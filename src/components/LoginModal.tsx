@@ -29,7 +29,7 @@ export function LoginModal({ isOpen, onClose, role }: LoginModalProps) {
 
   if (!isVisible && !isOpen) return null;
 
-  const callbackUrl = role === "recruiter" ? "/dashboard/company" : "/dashboard/jobs";
+  const callbackUrl = role === "recruiter" ? "/dashboard/talent" : "/dashboard/jobs";
 
   const handleOAuth = async (provider: string) => {
     await signIn(provider, { callbackUrl });

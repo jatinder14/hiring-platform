@@ -372,11 +372,11 @@ body.hero-out .hero {
     radial-gradient(72% 58% at 36% 28%, rgba(0, 210, 255, 0.14) 0%, rgba(0, 0, 0, 0) 75%),
     radial-gradient(64% 52% at 50% 52%, rgba(0, 255, 230, 0.08) 0%, rgba(0, 0, 0, 0) 72%);
   filter: blur(44px) saturate(1.18);
-  animation: smokeMove 10s ease-in-out infinite alternate;
+  animation: smoke-move 10s ease-in-out infinite alternate;
   mask-image: radial-gradient(85% 70% at 50% 35%, black 55%, transparent 100%);
 }
 
-@keyframes smokeMove {
+@keyframes smoke-move {
   from {
     transform: translate3d(0, -18px, 0) scale(1.06);
   }
@@ -539,11 +539,11 @@ body.tree-exit .tree-layer {
     radial-gradient(35% 25% at 78% 24%, rgba(140, 170, 255, 0.14), rgba(0, 0, 0, 0)),
     radial-gradient(35% 25% at 72% 82%, rgba(0, 255, 230, 0.12), rgba(0, 0, 0, 0));
   filter: blur(35px);
-  animation: floatGlow 9s ease-in-out infinite alternate;
+  animation: float-glow 9s ease-in-out infinite alternate;
   pointer-events: none;
 }
 
-@keyframes floatGlow {
+@keyframes float-glow {
   from {
     transform: translate3d(-10px, -10px, 0) scale(1.02);
     opacity: .85;
@@ -1231,11 +1231,11 @@ body.tree-exit .tree-layer {
   padding: 8px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   z-index: 100;
-  animation: dropdownFade 0.2s ease forwards;
+  animation: dropdown-fade 0.2s ease forwards;
   transform-origin: top right;
 }
 
-@keyframes dropdownFade {
+@keyframes dropdown-fade {
   from {
     opacity: 0;
     transform: scale(0.95);
@@ -1316,103 +1316,4 @@ body.tree-exit .tree-layer {
 .hn-drawer-link:hover {
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
-}
-
-
-
-.user-dropdown-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 12px 6px 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 99px;
-  cursor: pointer;
-  color: #fff;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.user-dropdown-btn:hover,
-.user-dropdown-btn.active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
-}
-
-.user-dropdown-btn:focus-visible {
-  outline: 2px solid rgba(0, 255, 230, 0.9);
-  outline-offset: 2px;
-}
-
-.user-avatar-small {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.user-avatar-small img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.dropdown-caret {
-  color: rgba(255, 255, 255, 0.6);
-  transition: transform 0.2s ease;
-}
-
-.dropdown-caret.rotate {
-  transform: rotate(180deg);
-}
-
-.user-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 240px;
-  background: rgba(10, 10, 15, 0.95);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  animation: dropdownFade 0.2s ease forwards;
-  transform-origin: top right;
-}
-
-@keyframes dropdownFade {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.user-dropdown-header {
-  padding: 12px 16px;
-}
-
-
-
-.user-dropdown-email {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

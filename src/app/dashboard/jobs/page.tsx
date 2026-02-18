@@ -47,9 +47,20 @@ export default function JobsPage() {
     });
 
     useEffect(() => {
-        // In real app, fetch from /api/applications or check status
-        const saved = localStorage.getItem('applied_jobs');
-        if (saved) setAppliedJobs(JSON.parse(saved));
+        const fetchAppliedStatus = async () => {
+            try {
+                const res = await fetch('/api/applications');
+                if (res.ok) {
+                    const data = await res.json();
+                    // Extract job IDs from the applications list
+                    const appliedIds = data.map((app: any) => app.jobId);
+                    setAppliedJobs(appliedIds);
+                }
+            } catch (error) {
+                console.error("Failed to fetch application status", error);
+            }
+        };
+        fetchAppliedStatus();
     }, []);
 
     const handleClearFilters = () => {

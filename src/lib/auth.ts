@@ -38,21 +38,31 @@ export const authOptions: NextAuthOptions = {
 
                 // If new user, create record with role from cookie (or default)
                 if (!dbUser) {
-                    const roleCookie = cookies().get("login_role")?.value;
-                    let initialRole: UserRole = UserRole.CANDIDATE;
+                    try {
+                        const roleCookie = cookies().get("login_role")?.value;
+                        console.log(`[AUTH] Login Role Cookie Found: "${roleCookie}"`);
 
-                    if (roleCookie === "recruiter") {
-                        initialRole = UserRole.CLIENT;
-                    }
+                        let initialRole: UserRole = UserRole.CANDIDATE;
 
-                    dbUser = await prisma.user.create({
-                        data: {
-                            email: user.email,
-                            name: user.name,
-                            profileImageUrl: user.image,
-                            userRole: initialRole,
+                        if (roleCookie === "recruiter") {
+                            initialRole = UserRole.CLIENT;
                         }
-                    });
+
+                        console.log(`[AUTH] Creating new user: ${user.email} with role: ${initialRole}`);
+
+                        dbUser = await prisma.user.create({
+                            data: {
+                                email: user.email,
+                                name: user.name,
+                                profileImageUrl: user.image,
+                                userRole: initialRole,
+                            }
+                        });
+                        console.log(`[AUTH] User created successfully: ${dbUser.id}`);
+                    } catch (error) {
+                        console.error("[AUTH] Failed to create user:", error);
+                        throw error;
+                    }
                 }
 
                 // Always use the role from the database

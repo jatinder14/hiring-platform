@@ -20,13 +20,25 @@ enum UserRole {
 
 model User {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  clerkId         String?  @unique
   email           String   @unique
+
   name            String?
   profileImageUrl String?
-  userRole        UserRole? @default(CANDIDATE)
+  userRole        UserRole @default(CANDIDATE)
+  phoneNumber     String?
+  country         String?
+  state           String?
+  city            String?
+  linkedin        String?
+  github          String?
+  twitter         String?
+  currentCTC      String?
+  expectedCTC     String?
+  noticePeriod    String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  jobs            Job[]
+  applications    Application[]
 }
 
 enum ApplicationStatus {
@@ -48,7 +60,8 @@ model Job {
   skills          String[]
   salary          String?       // e.g. "150,000"
   currency        String?       // e.g. "USD"
-  postedById      String?       // Reference to Client Clerk ID
+  postedById      String        @db.ObjectId
+  postedBy        User          @relation(fields: [postedById], references: [id])
   createdAt       DateTime      @default(now())
   applications    Application[]
 }
@@ -57,7 +70,8 @@ model Application {
   id           String            @id @default(auto()) @map("_id") @db.ObjectId
   jobId        String            @db.ObjectId
   job          Job               @relation(fields: [jobId], references: [id])
-  candidateId  String            // Clerk ID of the candidate
+  candidateId  String            @db.ObjectId
+  candidate    User              @relation(fields: [candidateId], references: [id])
   resumeUrl    String
   motivation   String?
   currentCTC   String?
@@ -66,4 +80,6 @@ model Application {
   city         String?
   status       ApplicationStatus @default(APPLIED)
   appliedAt    DateTime          @default(now())
+
+  @@unique([jobId, candidateId])
 }

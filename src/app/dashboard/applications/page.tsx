@@ -7,25 +7,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Mock data for applications
-const mockApplications = [
-    {
-        id: "app_1",
-        jobTitle: "Senior Full Stack Engineer",
-        company: "TechNova Solutions",
-        appliedDate: "2026-02-10",
-        status: "Applied",
-        logo: "TN"
-    },
-    {
-        id: "app_2",
-        jobTitle: "Frontend Developer",
-        company: "Innovation Hub",
-        appliedDate: "2026-02-08",
-        status: "Interview",
-        logo: "IH"
-    }
-];
+// Mock data removed in favor of API fetching
 
 const getStatusBadge = (status: string) => {
     const badgeStyle = {
@@ -53,15 +35,25 @@ const getStatusBadge = (status: string) => {
 
 export default function ApplicationsPage() {
     const [applications, setApplications] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const saved = localStorage.getItem('user_applications');
-        if (saved) {
-            setApplications(JSON.parse(saved));
-        } else {
-            // Fallback to mock only if nothing in local storage
-            setApplications(mockApplications);
-        }
+        const fetchApplications = async () => {
+            try {
+                const res = await fetch('/api/applications');
+                if (res.ok) {
+                    const data = await res.json();
+                    // Transform API data to match component expectation or update component to usage
+                    // The API returns { job: { title, company }, status, appliedAt, ... }
+                    setApplications(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch applications", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchApplications();
     }, []);
 
     return (
@@ -89,13 +81,13 @@ export default function ApplicationsPage() {
                                         fontWeight: '700',
                                         color: '#3b82f6'
                                     }}>
-                                        {app.logo}
+                                        {app.job?.company?.charAt(0) || 'C'}
                                     </div>
                                     <div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.jobTitle}</h3>
+                                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.job?.title || 'Unknown Role'}</h3>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.company}</span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}</span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.job?.company || 'Unknown Company'}</span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                 </div>
