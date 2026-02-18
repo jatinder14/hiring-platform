@@ -14,7 +14,7 @@ body {
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   background: #05070c;
   color: #fff;
   overflow-x: hidden;
@@ -267,7 +267,6 @@ main {
 .hn-burger {
   display: none;
   margin-left: auto;
-  border: none;
   cursor: pointer;
   padding: 12px 12px;
   border-radius: 16px;
@@ -664,7 +663,6 @@ body.tree-exit .tree-layer {
 }
 
 .dom-tab {
-  border: none;
   cursor: pointer;
   padding: 10px 14px;
   border-radius: 999px;

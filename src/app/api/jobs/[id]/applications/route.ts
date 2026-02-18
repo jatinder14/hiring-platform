@@ -23,11 +23,12 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 2. Authorization check - Must be a company
-        const user = await currentUser();
-        const userRole = user?.unsafeMetadata?.userRole;
+        // 2. Authorization check - Always validate against DB for security
+        const dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId }
+        });
 
-        if (userRole !== 'CLIENT') {
+        if (dbUser?.userRole !== 'CLIENT') {
             console.log('[API] Forbidden - user is not a company');
             return NextResponse.json({
                 error: "Forbidden - Only companies can view applications"
@@ -64,7 +65,8 @@ export async function GET(
                 jobId: params.id,
                 companyId: userId  // ✅ Additional safety check
             },
-            orderBy: { appliedAt: 'desc' }
+            orderBy: { appliedAt: 'desc' },
+            take: 50 // Unbounded query limit
         });
 
         console.log(`[API] Found ${applications.length} applications for job ${params.id}`);

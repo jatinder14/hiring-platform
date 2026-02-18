@@ -27,7 +27,6 @@ export default function CompanySignUpPage() {
                     path="/sign-up/company"
                     routing="path"
                     signInUrl="/sign-in"
-                    unsafeMetadata={{ userRole: "CLIENT" }}
                     appearance={{
                         elements: {
                             rootBox: {

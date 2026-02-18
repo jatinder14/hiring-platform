@@ -38,16 +38,29 @@ export default function CompanyCandidatesPage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
         const fetchCandidates = async () => {
             try {
+                setError('');
                 setIsLoading(true);
                 let url = '/api/company/applications?';
                 if (statusFilter) url += `status=${statusFilter}&`;
                 if (fromDate) url += `fromDate=${fromDate}&`;
                 if (toDate) url += `toDate=${toDate}&`;
 
-                const res = await fetch(url);
-                if (!res.ok) throw new Error('Failed to fetch candidates');
+                const res = await fetch(url, { signal });
+                if (!res.ok) {
+                    // Check if it's a JSON response before parsing
+                    const contentType = res.headers.get("content-type");
+                    let errorMessage = 'Failed to fetch candidates';
+                    if (contentType && contentType.includes("application/json")) {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || errorMessage;
+                    }
+                    throw new Error(errorMessage);
+                }
                 const data = await res.json();
 
                 const mappedCandidates = data.map((app: any) => {
@@ -79,15 +92,18 @@ export default function CompanyCandidatesPage() {
                 });
 
                 setCandidates(mappedCandidates);
-            } catch (err) {
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
                 console.error(err);
-                setError('Failed to load candidates');
+                setError(err.message || 'Failed to load candidates');
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchCandidates();
+
+        return () => controller.abort();
     }, [statusFilter, fromDate, toDate]);
 
     const filteredCandidates = candidates.filter(c =>

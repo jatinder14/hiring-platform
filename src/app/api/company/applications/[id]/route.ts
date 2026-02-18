@@ -31,7 +31,7 @@ export async function GET(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        let candidate: any = await prisma.user.findUnique({
+        let candidate = await prisma.user.findUnique({
             where: {
                 clerkId: application.candidateId
             },
@@ -48,32 +48,40 @@ export async function GET(
             console.log(`[API] Candidate ${application.candidateId} missing from local DB, fetching from Clerk...`);
             try {
                 const { clerkClient } = await import('@clerk/nextjs/server');
-                const cClient = await clerkClient();
-                const clerkUser = await cClient.users.getUser(application.candidateId);
+                const client = await clerkClient();
+                const clerkUser = await client.users.getUser(application.candidateId);
 
                 if (clerkUser) {
+                    const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || 'Anonymous Candidate';
+                    const email = clerkUser.emailAddresses[0]?.emailAddress;
+
                     candidate = {
                         clerkId: clerkUser.id,
-                        name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || 'Anonymous Candidate',
-                        email: clerkUser.emailAddresses[0]?.emailAddress || 'N/A',
+                        name,
+                        email: email || 'N/A',
                         profileImageUrl: clerkUser.imageUrl
                     };
-                    // Optional: Proactively sync to DB
-                    await prisma.user.upsert({
-                        where: { clerkId: clerkUser.id },
-                        update: {
-                            name: candidate.name,
-                            email: candidate.email,
-                            profileImageUrl: candidate.profileImageUrl
-                        },
-                        create: {
-                            clerkId: clerkUser.id,
-                            name: candidate.name,
-                            email: candidate.email,
-                            profileImageUrl: candidate.profileImageUrl,
-                            userRole: 'CANDIDATE'
-                        }
-                    }).catch(e => console.error('[API] Auto-sync failed:', e));
+
+                    // Only sync to DB if we have an email (required field in our schema)
+                    if (email) {
+                        await prisma.user.upsert({
+                            where: { clerkId: clerkUser.id },
+                            update: {
+                                name: candidate.name,
+                                email: email,
+                                profileImageUrl: candidate.profileImageUrl
+                            },
+                            create: {
+                                clerkId: clerkUser.id,
+                                name: candidate.name,
+                                email: email,
+                                profileImageUrl: candidate.profileImageUrl,
+                                userRole: 'CANDIDATE'
+                            }
+                        }).catch(e => console.error('[API] Auto-sync failed:', e));
+                    } else {
+                        console.warn(`[API] Skipping sync for candidate ${clerkUser.id} due to missing email`);
+                    }
                 }
             } catch (clerkError) {
                 console.error(`[API] Failed to fetch candidate ${application.candidateId} from Clerk:`, clerkError);
@@ -107,12 +115,6 @@ export async function PATCH(
         }
 
         const applicationId = params.id;
-        const body = await req.json();
-        const { status } = body;
-
-        if (!status) {
-            return NextResponse.json({ error: "Status is required" }, { status: 400 });
-        }
 
         // Verify ownership first
         const application = await prisma.application.findUnique({
@@ -125,13 +127,31 @@ export async function PATCH(
         }
 
         if (application.companyId !== userId) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+            return NextResponse.json({ error: "Forbidden - Not your application" }, { status: 403 });
+        }
+
+        const body = await req.json();
+        const { status, interviewScheduledAt } = body;
+
+        // 🛡️ DATA VALIDATION: Validate status against authorized company transitions
+        const allowedStatuses = ['APPLIED', 'SHORTLISTED', 'REJECTED', 'INTERVIEW', 'HIRED'];
+
+        if (!status || !allowedStatuses.includes(status)) {
+            return NextResponse.json({
+                error: "Invalid status value or unauthorized transition",
+                allowed: allowedStatuses
+            }, { status: 400 });
+        }
+
+        const updateData: any = { status };
+        if (interviewScheduledAt) {
+            updateData.interviewScheduledAt = new Date(interviewScheduledAt);
         }
 
         // Update status
         const updatedApplication = await prisma.application.update({
             where: { id: applicationId },
-            data: { status }
+            data: updateData
         });
 
         return NextResponse.json(updatedApplication);

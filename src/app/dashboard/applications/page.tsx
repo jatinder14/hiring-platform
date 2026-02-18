@@ -5,6 +5,7 @@ import {
     Briefcase, Calendar, ChevronRight, Filter,
     MoreVertical, CheckCircle, Clock, XCircle, UserCheck
 } from 'lucide-react';
+import { toast } from 'sonner';
 import Link from 'next/link';
 
 const getStatusBadge = (status: string) => {
@@ -80,7 +81,7 @@ export default function ApplicationsPage() {
             const res = await fetch(`/api/applications/${selectedAppId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'withdraw' })
+                body: JSON.stringify({ status: 'WITHDRAWN' })
             });
 
             if (res.ok) {
@@ -89,12 +90,13 @@ export default function ApplicationsPage() {
                     app.id === selectedAppId ? { ...app, status: 'WITHDRAWN' } : app
                 ));
                 setIsWithdrawModalOpen(false);
+                toast.success('Application withdrawn successfully');
             } else {
-                alert('Failed to withdraw application');
+                toast.error('Failed to withdraw application');
             }
         } catch (err) {
             console.error(err);
-            alert('Error withdrawing application');
+            toast.error('Error withdrawing application');
         } finally {
             setIsWithdrawing(false);
             setSelectedAppId(null);

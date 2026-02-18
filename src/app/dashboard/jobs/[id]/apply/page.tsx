@@ -6,7 +6,9 @@ import {
     Briefcase, MapPin, DollarSign, UploadCloud,
     ChevronLeft, CheckCircle, FileText, Loader2, Clock
 } from 'lucide-react';
+import { toast } from 'sonner';
 import Link from 'next/link';
+import RichTextEditor from '@/components/dashboard/RichTextEditor';
 
 type Job = {
     id: string;
@@ -60,6 +62,8 @@ export default function ApplyPage() {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [resume, setResume] = useState<File | null>(null);
+    const [resumeLink, setResumeLink] = useState('');
+    const [submissionType, setSubmissionType] = useState<'upload' | 'link'>('upload');
     const [motivationData, setMotivationData] = useState<string>('');
     const [fetchError, setFetchError] = useState('');
 
@@ -164,7 +168,7 @@ export default function ApplyPage() {
         e.preventDefault();
 
         if (!params?.id) {
-            alert("Invalid Job URL");
+            toast.error("Invalid Job URL");
             return;
         }
 
@@ -173,15 +177,28 @@ export default function ApplyPage() {
         setIsSubmitting(true);
 
         try {
-            // In a real app, we would upload the file to S3 first and get a URL
-            // const resumeUrl = await uploadToS3(resume);
+            // Determine Resume URL
+            let finalResumeUrl = '';
+
+            if (submissionType === 'link') {
+                if (!resumeLink || (!resumeLink.startsWith('http://') && !resumeLink.startsWith('https://'))) {
+                    toast.error("Please enter a valid HTTP/HTTPS resume link");
+                    setIsSubmitting(false);
+                    return;
+                }
+                finalResumeUrl = resumeLink;
+            } else {
+                // Mock upload logic - In a real app, this would be the S3/Cloudinary URL
+                // We use a valid HTTPS placeholder to pass backend validation
+                finalResumeUrl = "https://hireu-storage.example.com/resumes/mock_resume_file.pdf";
+            }
 
             const response = await fetch('/api/applications', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     jobId: jobId,
-                    resumeUrl: "mock_resume_url.pdf", // placeholder
+                    resumeUrl: finalResumeUrl,
                     motivation: motivationData,
                     ...formData
                 })
@@ -213,11 +230,11 @@ export default function ApplyPage() {
                 setIsSubmitted(true);
             } else {
                 const errorData = await response.json();
-                alert(errorData.error || "Failed to submit application. Please try again.");
+                toast.error(errorData.error || "Failed to submit application. Please try again.");
             }
         } catch (error) {
             console.error("Submission failed:", error);
-            alert("Something went wrong.");
+            toast.error("Something went wrong.");
         } finally {
             setIsSubmitting(false);
         }
@@ -323,41 +340,71 @@ export default function ApplyPage() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label className="form-label">Resume / CV (PDF, MAX 5MB)</label>
-                                <div
-                                    className="resume-upload-area"
-                                    style={{ padding: '24px', borderStyle: 'dashed' }}
-                                    onClick={() => document.getElementById('resume-upload')?.click()}
-                                >
-                                    <UploadCloud size={32} className="text-muted" style={{ margin: '0 auto 8px' }} />
-                                    {resume ? (
-                                        <div className="flex items-center gap-2 justify-center" style={{ color: '#3b82f6', fontWeight: '500' }}>
-                                            <FileText size={16} /> {resume.name}
+                                <label className="form-label">Resume / CV</label>
+
+                                {submissionType === 'upload' ? (
+                                    <>
+                                        <div
+                                            className="resume-upload-area hover:bg-gray-50 transition-colors"
+                                            style={{
+                                                padding: '32px',
+                                                border: '2px dashed #e5e7eb',
+                                                borderRadius: '12px',
+                                                cursor: 'pointer',
+                                                textAlign: 'center',
+                                                backgroundColor: '#ffffff'
+                                            }}
+                                            onClick={() => document.getElementById('resume-upload')?.click()}
+                                        >
+                                            <div className="mx-auto w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-3">
+                                                <UploadCloud size={24} className="text-blue-500" />
+                                            </div>
+                                            {resume ? (
+                                                <div className="flex items-center gap-2 justify-center text-blue-600 font-medium">
+                                                    <FileText size={16} /> {resume.name}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <p className="text-sm font-medium text-gray-700">Click to upload PDF</p>
+                                                    <p className="text-xs text-gray-500 mt-1">Max file size 5MB</p>
+                                                </>
+                                            )}
+                                            <input
+                                                type="file"
+                                                id="resume-upload"
+                                                hidden
+                                                accept=".pdf"
+                                                onChange={handleFileChange}
+                                                required={submissionType === 'upload'}
+                                            />
                                         </div>
-                                    ) : (
-                                        <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                                            Click to upload PDF
+                                    </>
+                                ) : (
+                                    <div>
+                                        <input
+                                            type="url"
+                                            className="form-input"
+                                            placeholder="https://drive.google.com/..."
+                                            value={resumeLink}
+                                            onChange={(e) => setResumeLink(e.target.value)}
+                                            required={submissionType === 'link'}
+                                            autoFocus
+                                        />
+                                        <div className="mt-2">
+                                            <p className="text-xs text-gray-500">
+                                                Paste a public link to your resume
+                                            </p>
                                         </div>
-                                    )}
-                                    <input
-                                        type="file"
-                                        id="resume-upload"
-                                        hidden
-                                        accept=".pdf"
-                                        onChange={handleFileChange}
-                                        required
-                                    />
-                                </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">Motivation Letter / Why you? (Optional)</label>
-                                <textarea
-                                    className="form-input"
-                                    rows={6}
+                                <RichTextEditor
+                                    value={motivationData}
+                                    onChange={setMotivationData}
                                     placeholder="Tell us why you're a great fit..."
-                                    onChange={(e) => setMotivationData(e.target.value)}
-                                    value={motivationData || ''}
                                 />
                             </div>
 

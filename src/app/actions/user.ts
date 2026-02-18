@@ -15,18 +15,19 @@ export async function updateUserRole(role: "CLIENT" | "CANDIDATE") {
     }
 
     try {
-        // Update Clerk user metadata
-        await clerkClient.users.updateUserMetadata(userId, {
-            unsafeMetadata: { userRole: role },
+        // Update Clerk user metadata - Use publicMetadata which is server-writable only
+        const client = await clerkClient();
+        await client.users.updateUserMetadata(userId, {
+            publicMetadata: { userRole: role },
         });
 
         // Webhook will automatically sync this to MongoDB
         console.log(`Updated userRole to ${role} for user ${userId}`);
-
-        // Redirect to dashboard (will show appropriate sidebar based on role)
-        redirect("/dashboard");
     } catch (error) {
         console.error("Failed to update user role:", error);
         throw new Error("Failed to update role. Please try again.");
     }
+
+    // Redirect to dashboard (outside try-catch so Next.js can handle the redirect error)
+    redirect("/dashboard");
 }

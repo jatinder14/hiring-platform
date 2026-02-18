@@ -7,6 +7,7 @@ import {
     Linkedin, Github, Twitter, Trash2, Eye, FileText, Image as ImageIcon,
     ChevronDown, Search
 } from 'lucide-react';
+import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 
 const LocationSelector = dynamic(() => import('@/components/dashboard/LocationSelector'), {
@@ -267,6 +268,42 @@ export default function ProfilePage() {
         setResumes(prev => prev.filter(r => r.id !== id));
     };
 
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+
+        try {
+            // TODO: Implement actual API call to save profile data to MongoDB
+            console.log('Saving profile data:', {
+                fullName,
+                phoneNumber: `${selectedCountryCode}${phoneNumber}`,
+                location: {
+                    country: selectedCountryIso,
+                    state: selectedStateIso,
+                    city: selectedCityName,
+                    pincode
+                },
+                socials: { linkedin, github, twitter },
+                professional: {
+                    noticePeriod,
+                    currentCTC: `${currentCurrencyCode} ${currentCTC}`,
+                    expectedCTC: `${expectedCurrencyCode} ${expectedCTC}`
+                }
+            });
+
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            toast.success('Profile updated successfully!');
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            toast.error('Failed to update profile. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     if (!isLoaded) return <div className="p-8 text-center text-muted">Loading profile...</div>;
 
     return (
@@ -306,7 +343,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                <form onSubmit={(e) => e.preventDefault()}>
+                <form onSubmit={handleSubmit}>
                     {/* Personal Information */}
                     <div className="section-title">Personal Information</div>
                     <div className="form-grid">
@@ -478,6 +515,7 @@ export default function ProfilePage() {
                                         placeholder="Amount"
                                         value={currentCTC}
                                         onChange={(e) => setCurrentCTC(e.target.value)}
+                                        min="0"
                                     />
                                 </div>
                             </div>
@@ -508,6 +546,7 @@ export default function ProfilePage() {
                                         placeholder="Amount"
                                         value={expectedCTC}
                                         onChange={(e) => setExpectedCTC(e.target.value)}
+                                        min="0"
                                     />
                                 </div>
                             </div>
@@ -600,8 +639,10 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="form-actions mt-8 flex justify-between gap-4">
-                        <button type="button" className="btn-secondary">Cancel</button>
-                        <button type="submit" className="btn-primary">Save Changes</button>
+                        <button type="button" className="btn-secondary" disabled={isSaving}>Cancel</button>
+                        <button type="submit" className="btn-primary" disabled={isSaving}>
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
                     </div>
                 </form>
             </div >

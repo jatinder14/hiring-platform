@@ -34,7 +34,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        if (body.action === 'withdraw') {
+        if (body.status === 'WITHDRAWN') {
             const updatedApp = await prisma.application.update({
                 where: { id: applicationId },
                 data: { status: 'WITHDRAWN' }
@@ -42,7 +42,7 @@ export async function PATCH(
             return NextResponse.json(updatedApp);
         }
 
-        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+        return NextResponse.json({ error: "Invalid status update. Only 'WITHDRAWN' is allowed." }, { status: 400 });
 
     } catch (error: any) {
         console.error("[API] Error withdrawing application:", error);

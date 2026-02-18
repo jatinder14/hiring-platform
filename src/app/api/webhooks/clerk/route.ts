@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     try {
         // 1. Handle Create/Update
         if (eventType === "user.created" || eventType === "user.updated") {
-            const { id, email_addresses, first_name, last_name, image_url, unsafe_metadata } = evt.data;
+            const { id, email_addresses, first_name, last_name, image_url, unsafe_metadata, public_metadata } = evt.data;
             const email = email_addresses?.[0]?.email_address;
 
             if (!email) {
@@ -59,7 +59,8 @@ export async function POST(req: Request) {
             }
 
             const name = `${first_name || ""} ${last_name || ""}`.trim() || null;
-            const userRole = (unsafe_metadata?.userRole as "CLIENT" | "CANDIDATE") || "CANDIDATE";
+            // Prefer public_metadata for security, fallback to unsafe for compatibility
+            const userRole = (public_metadata?.userRole || unsafe_metadata?.userRole || "CANDIDATE") as "CLIENT" | "CANDIDATE";
 
             await prisma.user.upsert({
                 where: { clerkId: id },

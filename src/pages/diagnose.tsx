@@ -1,1 +1,0 @@
-export default function Diagnose() { return <h1>App Router Bypassed</h1>; }

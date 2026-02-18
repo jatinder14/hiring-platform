@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
     Briefcase,
     MapPin,
@@ -70,14 +71,14 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
                 });
             } catch (error) {
                 console.error(error);
-                alert('Failed to load job details');
+                toast.error('Failed to load job details');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchJob();
-    }, [params]);
+    }, [params.id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -133,7 +134,7 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
             router.refresh();
         } catch (error) {
             console.error(error);
-            alert('Failed to save changes');
+            toast.error('Failed to save changes');
         } finally {
             setSaving(false);
         }

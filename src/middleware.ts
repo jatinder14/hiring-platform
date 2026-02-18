@@ -5,7 +5,8 @@ const isPublicRoute = createRouteMatcher([
     "/",  // Home page is public
     "/sign-in(.*)",
     "/sign-up(.*)",
-    "/api/(.*)",  // Allow API routes to execute - they handle their own auth
+    "/api/webhooks(.*)", // Webhooks MUST be public for Clerk to call them
+    "/api/jobs(.*)",     // Public job listing (though GET handles visibility)
 ]);
 
 const isDashboardRoute = createRouteMatcher([

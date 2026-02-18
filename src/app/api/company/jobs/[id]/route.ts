@@ -27,8 +27,8 @@ export async function GET(
             return NextResponse.json({ error: "Job not found" }, { status: 404 });
         }
 
-        // Verify ownership - Cast to any due to potential Prisma client sync issues
-        if ((job as any).companyId !== userId && (job as any).postedById !== userId) {
+        // Verify ownership
+        if (job.companyId !== userId) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -61,11 +61,11 @@ export async function PUT(
             return NextResponse.json({ error: "Job not found" }, { status: 404 });
         }
 
-        if ((existingJob as any).companyId !== userId && (existingJob as any).postedById !== userId) {
+        if (existingJob.companyId !== userId) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        // Update - Cast data to any to bypass strict type checking
+        // Update
         const updateData: any = {
             title: body.title,
             location: body.location,
@@ -73,9 +73,9 @@ export async function PUT(
             employmentType: body.employmentType,
             salary: body.salary,
             status: body.status,
-            category: body.category || (existingJob as any).category,
-            skills: body.skills || (existingJob as any).skills,
-            currency: body.currency || (existingJob as any).currency
+            category: body.category || existingJob.category,
+            skills: body.skills || existingJob.skills,
+            currency: body.currency || existingJob.currency
         };
 
         const updatedJob = await prisma.job.update({
@@ -111,7 +111,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Job not found" }, { status: 404 });
         }
 
-        if ((existingJob as any).companyId !== userId && (existingJob as any).postedById !== userId) {
+        if (existingJob.companyId !== userId) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 

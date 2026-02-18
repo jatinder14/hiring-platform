@@ -16,11 +16,7 @@ export default function DashboardLoading() {
             </div>
 
             {/* Grid Skeleton */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '24px'
-            }}>
+            <div className="stats-grid">
                 {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="card skeleton-card" style={{ height: '160px', padding: '24px' }}>
                         <div className="skeleton" style={{ width: '48px', height: '48px', borderRadius: '12px', marginBottom: '20px' }}></div>
@@ -31,11 +27,7 @@ export default function DashboardLoading() {
             </div>
 
             {/* Content Skeleton */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 2.5fr) 1fr',
-                gap: '32px'
-            }}>
+            <div className="dashboard-content-grid">
                 <div className="card skeleton-card" style={{ height: '400px' }}></div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                     <div className="card skeleton-card" style={{ height: '200px' }}></div>

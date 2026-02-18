@@ -13,7 +13,7 @@
     "deploy:prod": "vercel --prod"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.37.3",
+    "@clerk/nextjs": "^6.37.5",
     "@editorjs/checklist": "^1.6.0",
     "@editorjs/code": "^2.9.4",
     "@editorjs/delimiter": "^1.4.2",
@@ -35,9 +35,9 @@
     "mongodb": "^7.1.0",
     "next": "^14.2.0",
     "nextjs-toploader": "^3.9.17",
-    "prisma": "6.19.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "sonner": "^2.0.7",
     "svix": "^1.84.1",
     "tailwind-merge": "^3.4.0"
   },
@@ -45,6 +45,7 @@
     "@types/node": "^20.19.33",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "prisma": "6.19.2",
     "typescript": "^5.9.3",
     "vercel": "^39.0.0"
   }

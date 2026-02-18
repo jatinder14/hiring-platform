@@ -33,6 +33,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
+        // 🛡️ SECURITY: Prevent Stored XSS by validating URL protocol
+        try {
+            const url = new URL(resumeUrl);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                throw new Error("Invalid protocol");
+            }
+        } catch (e) {
+            return NextResponse.json({
+                error: "Invalid resume URL. Only http:// and https:// links are allowed for security reasons."
+            }, { status: 400 });
+        }
+
         console.log('[API] Attempting to create application for jobId:', jobId);
 
         // 4. 🔒 SECURITY: Verify job exists and is ACTIVE
@@ -77,16 +89,20 @@ export async function POST(req: Request) {
                     const email = clerkUser.emailAddresses[0]?.emailAddress;
                     const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || null;
 
-                    await prisma.user.create({
-                        data: {
-                            clerkId: userId,
-                            email: email || `no-email-${userId}@placeholder.com`,
-                            name: name,
-                            profileImageUrl: clerkUser.imageUrl,
-                            userRole: 'CANDIDATE'
-                        }
-                    });
-                    console.log('[API] Successfully synced missing candidate to local DB');
+                    if (email) {
+                        await prisma.user.create({
+                            data: {
+                                clerkId: userId,
+                                email: email,
+                                name: name,
+                                profileImageUrl: clerkUser.imageUrl,
+                                userRole: 'CANDIDATE'
+                            }
+                        });
+                        console.log('[API] Successfully synced missing candidate to local DB');
+                    } else {
+                        console.warn('[API] Candidate has no email, skipping local DB sync');
+                    }
                 }
             } catch (syncError) {
                 console.error('[API] Failed to sync candidate during application:', syncError);
@@ -110,20 +126,24 @@ export async function POST(req: Request) {
         }
 
         // 6. 🔒 SECURITY: Create application with companyId from job
-        const application = await (prisma.application as any).create({
+        const application = await prisma.application.create({
             data: {
-                jobId: jobId,
                 candidateId: userId,
                 companyId: job.companyId,  // ✅ Get from job, NOT from request body
                 resumeUrl: resumeUrl,
-                motivation: motivation ? JSON.stringify(motivation) : null,
+                motivation: motivation || null, // ✅ Fix: Remove JSON.stringify to prevent double encoding
                 currentCTC: currentCTC || null,
                 expectedCTC: expectedCTC || null,
                 currentCurrency: currentCurrency || null,
                 expectedCurrency: expectedCurrency || null,
                 noticePeriod: noticePeriod || null,
                 city: city || null,
-                status: "APPLIED"
+                status: "APPLIED",
+                job: {
+                    connect: {
+                        id: jobId
+                    }
+                }
             }
         });
 
@@ -159,8 +179,17 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const { searchParams } = new URL(req.url);
+        const statusFilter = searchParams.get("status")?.toUpperCase();
+
+        const query: any = { candidateId: userId };
+
+        if (statusFilter && ["APPLIED", "SHORTLISTED", "REJECTED", "INTERVIEW", "HIRED", "WITHDRAWN"].includes(statusFilter)) {
+            query.status = statusFilter;
+        }
+
         const applications = await prisma.application.findMany({
-            where: { candidateId: userId },
+            where: query,
             include: {
                 job: {
                     select: {
@@ -172,6 +201,8 @@ export async function GET(req: Request) {
                         category: true,
                         salary: true,
                         currency: true,
+                        experienceMin: true,
+                        experienceMax: true
                     }
                 }
             },

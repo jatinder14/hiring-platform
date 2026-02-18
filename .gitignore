@@ -54,7 +54,5 @@ pnpm-debug.log*
 .pnp
 .pnp.js
 
-/app/generated/prisma
-
 # clerk configuration (can include secrets)
 /.clerk/

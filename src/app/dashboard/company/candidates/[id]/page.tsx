@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { toast } from 'sonner';
 import {
     ArrowLeft,
     Mail,
@@ -28,6 +29,9 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
     const [loading, setLoading] = useState(true);
     const [statusUpdating, setStatusUpdating] = useState(false);
 
+    const [scheduledDate, setScheduledDate] = useState('');
+    const [isScheduling, setIsScheduling] = useState(false);
+
     useEffect(() => {
         const fetchApplication = async () => {
             try {
@@ -41,6 +45,9 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
 
                 const data = await res.json();
                 setApplication(data);
+                if (data.interviewScheduledAt) {
+                    setScheduledDate(new Date(data.interviewScheduledAt).toISOString().split('T')[0]);
+                }
             } catch (error) {
                 console.error(error);
             } finally {
@@ -49,28 +56,44 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
         };
 
         fetchApplication();
-    }, [params]);
+    }, [params.id]);
 
-    const handleStatusUpdate = async (newStatus: string) => {
+    const handleStatusUpdate = async (newStatus: string, date?: string) => {
         if (!application) return;
         setStatusUpdating(true);
         try {
+            const payload: any = { status: newStatus };
+            if (date) payload.interviewScheduledAt = new Date(date).toISOString();
+
             const res = await fetch(`/api/company/applications/${application.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
-                setApplication({ ...application, status: newStatus });
+                const updated = await res.json();
+                setApplication(updated);
+                toast.success(`Status updated to ${newStatus}`);
+                setIsScheduling(false);
             } else {
-                alert('Failed to update status');
+                toast.error('Failed to update status');
             }
         } catch (error) {
             console.error(error);
-            alert('Error updating status');
+            toast.error('Error updating status');
         } finally {
             setStatusUpdating(false);
+        }
+    };
+
+    // 🛡️ SECURITY: URL Protocol Validation (XSS Prevention)
+    const isSafeUrl = (url: string) => {
+        try {
+            const parsed = new URL(url);
+            return ['http:', 'https:'].includes(parsed.protocol);
+        } catch {
+            return false;
         }
     };
 
@@ -142,9 +165,14 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                                         <span style={{ fontSize: '12px', padding: '2px 8px', backgroundColor: '#f3f4f6', borderRadius: '4px' }}>
                                             {job?.employmentType}
                                         </span>
-                                        {(job?.experienceMin !== undefined || job?.experienceMax !== undefined) && (
+                                        {(job?.experienceMin !== null && job?.experienceMin !== undefined || job?.experienceMax !== null && job?.experienceMax !== undefined) && (
                                             <span style={{ fontSize: '12px', padding: '2px 8px', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '4px', fontWeight: '600' }}>
-                                                {job.experienceMin}-{job.experienceMax} Yrs Exp Required
+                                                {job.experienceMin !== null && job.experienceMax !== null
+                                                    ? `${job.experienceMin}-${job.experienceMax} Yrs Exp Required`
+                                                    : job.experienceMin !== null
+                                                        ? `${job.experienceMin}+ Yrs Exp Required`
+                                                        : `Up to ${job.experienceMax} Yrs Exp Required`
+                                                }
                                             </span>
                                         )}
                                     </p>
@@ -166,7 +194,12 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4b5563', fontSize: '14px' }}>
                                     <Calendar size={16} style={{ color: '#9ca3af' }} />
-                                    <span>Applied {new Date(application.appliedAt).toLocaleDateString()}</span>
+                                    <span>
+                                        {application.status === 'INTERVIEW' && application.interviewScheduledAt
+                                            ? `Interview Scheduled: ${new Date(application.interviewScheduledAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                            : `Applied ${new Date(application.appliedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                        }
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -236,9 +269,15 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                                     <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Provided with application</p>
                                 </div>
                                 <a
-                                    href={application.resumeUrl}
-                                    target="_blank"
+                                    href={isSafeUrl(application.resumeUrl) ? application.resumeUrl : '#'}
+                                    target={isSafeUrl(application.resumeUrl) ? "_blank" : "_self"}
                                     rel="noopener noreferrer"
+                                    onClick={(e) => {
+                                        if (!isSafeUrl(application.resumeUrl)) {
+                                            e.preventDefault();
+                                            toast.error("Security Block: Invalid URL protocol. Only http/https are allowed.");
+                                        }
+                                    }}
                                     className="btn-primary"
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
                                 >
@@ -265,17 +304,47 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <button
-                                    onClick={() => handleStatusUpdate('INTERVIEW')}
-                                    disabled={statusUpdating}
-                                    style={{
-                                        padding: '12px', borderRadius: '8px', border: '1px solid #dbeafe',
-                                        backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: '600', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                                    }}
-                                >
-                                    <Calendar size={18} /> Move to Interview
-                                </button>
+                                {isScheduling ? (
+                                    <div style={{ padding: '16px', border: '1px solid #dbeafe', borderRadius: '12px', backgroundColor: '#f0f9ff' }}>
+                                        <p style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#0369a1' }}>Schedule Interview Date</p>
+                                        <input
+                                            type="date"
+                                            className="form-input"
+                                            value={scheduledDate}
+                                            onChange={(e) => setScheduledDate(e.target.value)}
+                                            style={{ marginBottom: '12px', width: '100%' }}
+                                        />
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button
+                                                onClick={() => handleStatusUpdate('INTERVIEW', scheduledDate)}
+                                                disabled={statusUpdating || !scheduledDate}
+                                                className="btn-primary"
+                                                style={{ flex: 1, height: '40px', fontSize: '13px' }}
+                                            >
+                                                {statusUpdating ? 'Updating...' : 'Confirm'}
+                                            </button>
+                                            <button
+                                                onClick={() => setIsScheduling(false)}
+                                                className="btn-secondary"
+                                                style={{ flex: 1, height: '40px', fontSize: '13px' }}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsScheduling(true)}
+                                        disabled={statusUpdating}
+                                        style={{
+                                            padding: '12px', borderRadius: '8px', border: '1px solid #dbeafe',
+                                            backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: '600', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                        }}
+                                    >
+                                        <Calendar size={18} /> {application.status === 'INTERVIEW' ? 'Reschedule Interview' : 'Move to Interview'}
+                                    </button>
+                                )}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <button
                                         onClick={() => handleStatusUpdate('HIRED')}

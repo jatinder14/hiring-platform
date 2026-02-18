@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { Briefcase, MapPin, DollarSign, Clock, CheckCircle, ChevronRight, X, Plus, Search, Globe, Building2, Map, Loader2 } from 'lucide-react';
+import { Briefcase, MapPin, DollarSign, Clock, CheckCircle, ChevronRight, X, Plus, Search, Globe, Building2, Map as MapIcon, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 type JobData = {
     title: string;
@@ -21,6 +22,7 @@ type JobData = {
     expMin: string;
     expMax: string;
     requirements: string;
+    category: string;
 };
 
 const STEPS = [
@@ -86,6 +88,7 @@ export default function CreateJobForm() {
         expMin: '',
         expMax: '',
         requirements: '',
+        category: 'Engineering'
     });
 
     const [skillInput, setSkillInput] = useState('');
@@ -120,11 +123,20 @@ export default function CreateJobForm() {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
 
-        // Reset lower-level location fields when higher-level changes
-        if (name === 'country') setFormData(prev => ({ ...prev, state: '', city: '' }));
-        if (name === 'state') setFormData(prev => ({ ...prev, city: '' }));
+        setFormData(prev => {
+            const newData = { ...prev, [name]: value };
+
+            // Reset lower-level location fields when higher-level changes
+            if (name === 'country') {
+                newData.state = '';
+                newData.city = '';
+            } else if (name === 'state') {
+                newData.city = '';
+            }
+
+            return newData;
+        });
     };
 
     const addSkill = (skillToAdd?: string) => {
@@ -156,6 +168,18 @@ export default function CreateJobForm() {
             // Get company name - default to "My Company" if user name is missing
             const companyName = user?.username || user?.fullName || "My Company";
 
+            // Range Validations
+            if (formData.salaryMax && Number(formData.salaryMin) > Number(formData.salaryMax)) {
+                toast.warning("Min salary cannot be greater than Max salary");
+                setIsSubmitting(false);
+                return;
+            }
+            if (formData.expMax && Number(formData.expMin) > Number(formData.expMax)) {
+                toast.warning("Min experience cannot be greater than Max experience");
+                setIsSubmitting(false);
+                return;
+            }
+
             // Construct payload
             const payload = {
                 title: formData.title,
@@ -171,11 +195,13 @@ export default function CreateJobForm() {
                 pincode: formData.pincode,
 
                 // Salary Handling
-                salary: `${formData.salaryMin} - ${formData.salaryMax}`,
+                salary: formData.salaryMax
+                    ? `${formData.salaryMin} - ${formData.salaryMax}`
+                    : `${formData.salaryMin}`,
                 currency: formData.currency,
 
                 // Other fields
-                category: "Engineering", // Default for now, should add to form
+                category: formData.category,
                 skills: formData.skills,
                 workMode: formData.workMode,
                 experienceMin: formData.expMin,
@@ -185,8 +211,6 @@ export default function CreateJobForm() {
                 // Critical: Set status to ACTIVE
                 status: 'ACTIVE'
             };
-
-            console.log("Submitting Job Payload:", payload);
 
             const response = await fetch('/api/jobs', {
                 method: 'POST',
@@ -201,15 +225,12 @@ export default function CreateJobForm() {
                 throw new Error(errorData.error || 'Failed to post job');
             }
 
-            const result = await response.json();
-            console.log("Job posted successfully:", result);
-
             // Redirect to jobs page
             router.push('/dashboard/company/jobs');
             router.refresh(); // Refresh data
-        } catch (error: any) {
-            console.error("Failed to post job:", error);
-            alert(`Failed to post job: ${error.message}`);
+        } catch (error: unknown) {
+            console.error('[API] Error creating job:', error instanceof Error ? error.message : 'Unknown error');
+            toast.error(error instanceof Error ? error.message : "Failed to publish job. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
@@ -325,6 +346,27 @@ export default function CreateJobForm() {
                                 </select>
                             </div>
 
+                            {/* Category */}
+                            <div className="form-group">
+                                <label className="form-label">Job Category</label>
+                                <select
+                                    name="category"
+                                    value={formData.category}
+                                    onChange={handleInputChange}
+                                    className="form-input"
+                                >
+                                    <option>Engineering</option>
+                                    <option>Marketing</option>
+                                    <option>Sales</option>
+                                    <option>Design</option>
+                                    <option>Finance</option>
+                                    <option>Human Resources</option>
+                                    <option>Operations</option>
+                                    <option>Product</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+
                             {/* Location Section */}
                             <div className="form-group full-width" style={{ marginTop: '8px' }}>
                                 <label className="form-label" style={{ color: '#3b82f6', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Details (Optional)</label>
@@ -349,7 +391,7 @@ export default function CreateJobForm() {
                                     <div>
                                         <label className="form-label" style={{ fontSize: '13px' }}>State</label>
                                         <div className="input-wrapper">
-                                            <Map size={16} />
+                                            <MapIcon size={16} />
                                             <select name="state" value={formData.state} onChange={handleInputChange} className="form-input" disabled={!formData.country}>
                                                 <option value="">Select State</option>
                                                 {(STATES[formData.country] || []).map(s => <option key={s} value={s}>{s}</option>)}
@@ -401,6 +443,7 @@ export default function CreateJobForm() {
                                                 value={formData.salaryMin}
                                                 onChange={handleInputChange}
                                                 placeholder="60,000"
+                                                min="0"
                                             />
                                         </div>
                                     </div>
@@ -416,6 +459,7 @@ export default function CreateJobForm() {
                                                 value={formData.salaryMax}
                                                 onChange={handleInputChange}
                                                 placeholder="90,000"
+                                                min="0"
                                             />
                                         </div>
                                     </div>
@@ -456,6 +500,7 @@ export default function CreateJobForm() {
                                                 onChange={handleInputChange}
                                                 placeholder="e.g. 2"
                                                 className="form-input"
+                                                min="0"
                                             />
                                         </div>
                                     </div>
@@ -470,6 +515,7 @@ export default function CreateJobForm() {
                                                 onChange={handleInputChange}
                                                 placeholder="e.g. 5"
                                                 className="form-input"
+                                                min="0"
                                             />
                                         </div>
                                     </div>

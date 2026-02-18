@@ -1,26 +1,29 @@
+
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
-
 import prisma from '@/lib/prisma';
 
-export default async function DashboardPage() {
+export default async function CandidateApplicationsLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
     const user = await currentUser();
 
     if (!user) {
         redirect('/sign-in');
     }
 
-    // 1. Check Metadata (Fastest)
+    // 1. Check Metadata
     let role = user.publicMetadata?.userRole as string | undefined;
 
-    // 2. Fallback to unsafeMetadata (Legacy)
+    // 2. Fallback to unsafeMetadata
     if (!role) {
         role = user.unsafeMetadata?.userRole as string | undefined;
     }
 
-    // 3. Fallback to Database (Most Authoritative)
+    // 3. Fallback to Database
     if (!role) {
-        console.log(`[Dashboard] Role missing in metadata for ${user.id}, checking DB...`);
         const dbUser = await prisma.user.findUnique({
             where: { clerkId: user.id },
             select: { userRole: true }
@@ -28,11 +31,11 @@ export default async function DashboardPage() {
         role = dbUser?.userRole || undefined;
     }
 
-    console.log(`[Dashboard] User: ${user.id}, Role: ${role}, Redirecting...`);
-
+    // 🔒 SECURITY: Companies should NOT access candidate applications
     if (role === 'CLIENT') {
+        console.log(`[Security] Company ${user.id} attempted to access candidate applications.`);
         redirect('/dashboard/company');
-    } else {
-        redirect('/dashboard/jobs');
     }
+
+    return <>{children}</>;
 }

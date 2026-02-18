@@ -21,13 +21,51 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 2. Authorization check - Must be a company
-        const user = await currentUser();
-        const userRole = user?.unsafeMetadata?.userRole;
-        console.log('[API] User role:', userRole);
+        // 2. Authorization check - Always validate against DB for security
+        let dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId }
+        });
 
-        if (userRole !== 'CLIENT') {
-            console.log('[API] Forbidden - user is not a company');
+        // 🛡️ DATA RECOVERY: If user missing or role mismatch, try strict sync from Clerk
+        if (!dbUser || dbUser.userRole !== 'CLIENT') {
+            console.log('[API] User missing or role mismatch in DB, attempting sync from Clerk...');
+            try {
+                const { clerkClient } = await import('@clerk/nextjs/server');
+                const client = await clerkClient();
+                const clerkUser = await client.users.getUser(userId);
+
+                if (clerkUser) {
+                    const role = (clerkUser.publicMetadata?.userRole || clerkUser.unsafeMetadata?.userRole || 'CANDIDATE') as 'CLIENT' | 'CANDIDATE';
+                    const email = clerkUser.emailAddresses[0]?.emailAddress;
+                    const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || null;
+
+                    if (email) {
+                        dbUser = await prisma.user.upsert({
+                            where: { clerkId: userId },
+                            update: {
+                                email,
+                                name,
+                                profileImageUrl: clerkUser.imageUrl,
+                                userRole: role
+                            },
+                            create: {
+                                clerkId: userId,
+                                email,
+                                name,
+                                profileImageUrl: clerkUser.imageUrl,
+                                userRole: role
+                            }
+                        });
+                        console.log(`[API] Synced user ${userId} with role ${role}`);
+                    }
+                }
+            } catch (error) {
+                console.error('[API] Failed to sync user during auth check:', error);
+            }
+        }
+
+        if (dbUser?.userRole !== 'CLIENT') {
+            console.log(`[API] Forbidden - User ${userId} is not a company (Role: ${dbUser?.userRole})`);
             return NextResponse.json({
                 error: "Forbidden - Only companies can post jobs"
             }, { status: 403 });
@@ -125,57 +163,36 @@ export async function GET(req: Request) {
         // Build where clause
         const where: any = {};
 
-        // 🔒 SECURITY: For public listing, only show ACTIVE jobs
-        if (status) {
-            where.status = status;
-        } else {
-            where.status = 'ACTIVE';
-        }
+        // 🔒 SECURITY: Strictly enforce ACTIVE status for public listings
+        // Ignore any status query param - only show ACTIVE jobs to the public
+        where.status = 'ACTIVE';
 
         // Fetch jobs with comprehensive error handling
-        try {
-            const jobs = await prisma.job.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
-                // Select only what's needed for public view
-                select: {
-                    id: true,
-                    title: true,
-                    company: true,
-                    location: true,
-                    description: true,
-                    employmentType: true,
-                    category: true,
-                    skills: true,
-                    salary: true,
-                    currency: true,
-                    status: true,
-                    createdAt: true,
-                    experienceMin: true,
-                    experienceMax: true,
-                }
-            });
+        const jobs = await prisma.job.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+            // Select only what's needed for public view
+            select: {
+                id: true,
+                title: true,
+                company: true,
+                location: true,
+                description: true,
+                employmentType: true,
+                category: true,
+                skills: true,
+                salary: true,
+                currency: true,
+                status: true,
+                createdAt: true,
+                experienceMin: true,
+                experienceMax: true,
+            }
+        });
 
-            console.log(`[API] Successfully fetched ${jobs.length} jobs`);
-            return NextResponse.json(jobs);
-        } catch (dbError: any) {
-            console.error('[API] Database query failed, attempting simple fallback:', dbError.message);
-
-            // Fallback: Fetch everything without specific select in case of schema sync issues
-            const rawJobs = await prisma.job.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
-                take: 50, // Limit for safety during fallback
-            });
-
-            // Clean data before sending
-            const sanitizedJobs = rawJobs.map((j: any) => {
-                const { companyId, ...rest } = j;
-                return rest;
-            });
-
-            return NextResponse.json(sanitizedJobs);
-        }
+        console.log(`[API] Successfully fetched ${jobs.length} jobs`);
+        return NextResponse.json(jobs);
 
     } catch (error: any) {
         console.error('[API] Critical error in GET /api/jobs:', error);

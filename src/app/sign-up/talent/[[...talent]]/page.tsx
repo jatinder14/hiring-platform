@@ -27,7 +27,6 @@ export default function TalentSignUpPage() {
                     path="/sign-up/talent"
                     routing="path"
                     signInUrl="/sign-in"
-                    unsafeMetadata={{ userRole: "CANDIDATE" }}
                     appearance={{
                         elements: {
                             rootBox: {

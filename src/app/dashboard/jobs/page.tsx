@@ -90,10 +90,15 @@ export default function JobsPage() {
     };
 
     const filteredJobs = jobs.filter(job => {
-        // Employment Type Filter
-        if (filters.fullTime && job.employmentType !== 'Full-time') return false;
-        if (filters.contract && job.employmentType !== 'Contract') return false;
-        if (filters.internship && job.employmentType !== 'Internship') return false;
+        // Employment Type Filter (OR Logic)
+        const activeTypes = [];
+        if (filters.fullTime) activeTypes.push('Full-time');
+        if (filters.contract) activeTypes.push('Contract');
+        if (filters.internship) activeTypes.push('Internship');
+
+        if (activeTypes.length > 0 && !activeTypes.includes(job.employmentType)) {
+            return false;
+        }
 
         // Skill Filter (Simple text match)
         if (filters.skills && !job.skills.some(skill => skill.toLowerCase().includes(filters.skills.toLowerCase()))) return false;

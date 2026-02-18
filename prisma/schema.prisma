@@ -94,10 +94,12 @@ model Application {
   city         String?
   status       ApplicationStatus @default(APPLIED)
   appliedAt    DateTime          @default(now())
+  interviewScheduledAt DateTime?     // Dedicated field for scheduled interviews
   
   // Performance indexes
   @@index([companyId])
   @@index([candidateId])
   @@index([jobId])
   @@index([companyId, status])
+  @@unique([jobId, candidateId])
 }

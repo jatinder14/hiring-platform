@@ -105,6 +105,8 @@ export default function LocationSelector({
                                 setSelectedCityName('');
                             } else {
                                 setSelectedCountryIso('');
+                                setSelectedStateIso('');
+                                setSelectedCityName('');
                             }
                         }}
                         placeholder="Search or select country..."

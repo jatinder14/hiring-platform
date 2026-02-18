@@ -23,7 +23,7 @@ export async function GET(
             }
         });
 
-        if (!job) {
+        if (!job || job.status !== 'ACTIVE') {
             return NextResponse.json(
                 { error: 'Job not found' },
                 { status: 404 }

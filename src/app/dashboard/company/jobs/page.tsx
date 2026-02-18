@@ -18,6 +18,7 @@ import {
     Loader2,
     ChevronDown
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ManageJobsPage() {
     const [jobs, setJobs] = useState<any[]>([]);
@@ -55,12 +56,13 @@ export default function ManageJobsPage() {
             if (res.ok) {
                 setJobs(jobs.filter(job => job.id !== jobToDelete));
                 setJobToDelete(null);
+                toast.success('Job deleted successfully');
             } else {
-                alert('Failed to delete job');
+                toast.error('Failed to delete job');
             }
         } catch (error) {
             console.error('Error deleting job:', error);
-            alert('Error deleting job');
+            toast.error('Error deleting job');
         }
     };
 

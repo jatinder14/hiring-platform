@@ -17,42 +17,13 @@ export default function CompanyDashboardPage() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // Fetch Jobs
-                const jobsRes = await fetch('/api/company/jobs');
-                const jobsData = await jobsRes.json();
-                const activeJobs = Array.isArray(jobsData) ? jobsData.filter((j: any) => j.status === 'ACTIVE').length : 0;
+                const res = await fetch('/api/company/dashboard-stats');
+                if (!res.ok) throw new Error('Failed to fetch dashboard stats');
 
-                // Fetch Applications
-                const appsRes = await fetch('/api/company/applications');
-                const appsData = await appsRes.json();
-                const totalApps = Array.isArray(appsData) ? appsData.length : 0;
+                const data = await res.json();
 
-                // For this demo, assume unique candidates = total applications (simplified)
-                // or distinctive candidateIds count
-                const uniqueCandidates = Array.isArray(appsData) ? new Set(appsData.map((a: any) => a.candidateId)).size : 0;
-
-                // Count interviews (status = 'Interview' or 'INTERVIEW')
-                const interviewCount = Array.isArray(appsData) ? appsData.filter((a: any) => ['Interview', 'INTERVIEW'].includes(a.status)).length : 0;
-
-                setStats({
-                    activeJobs,
-                    totalCandidates: uniqueCandidates,
-                    totalApplications: totalApps,
-                    interviews: interviewCount
-                });
-
-                // Recent Activity from Applications
-                if (Array.isArray(appsData)) {
-                    const sortedApps = [...appsData].sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()).slice(0, 5);
-                    const activity = sortedApps.map((app: any) => ({
-                        id: app.id,
-                        type: 'APPLICATION',
-                        user: app.candidate?.name || 'A candidate',
-                        role: app.job?.title || 'a job',
-                        time: new Date(app.appliedAt).toLocaleDateString()
-                    }));
-                    setRecentActivity(activity);
-                }
+                setStats(data.stats);
+                setRecentActivity(data.recentActivity);
 
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);

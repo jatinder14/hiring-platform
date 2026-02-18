@@ -15,9 +15,12 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 2. Authorization
-        const user = await currentUser();
-        if (user?.unsafeMetadata?.userRole !== 'CLIENT') {
+        // 2. Authorization check - Always validate against DB for security
+        const dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId }
+        });
+
+        if (dbUser?.userRole !== 'CLIENT') {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -31,7 +34,8 @@ export async function GET(req: Request) {
                     select: { applications: true }
                 }
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            take: 50 // Unbounded query limit
         });
 
         // 4. Format response
@@ -42,7 +46,7 @@ export async function GET(req: Request) {
             type: job.employmentType,
             applicants: job._count.applications,
             status: job.status, // ACTIVE, DRAFT, CLOSED, ARCHIVED
-            postedDate: new Date(job.createdAt).toLocaleDateString()
+            postedDate: job.createdAt
         }));
 
         return NextResponse.json(formattedJobs);

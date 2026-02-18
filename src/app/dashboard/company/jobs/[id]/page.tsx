@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { useRouter, notFound } from 'next/navigation';
+import { toast } from 'sonner';
 import {
     ArrowLeft,
     Pencil,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function ViewJobPage({ params }: { params: { id: string } }) {
+    const router = useRouter();
     const [job, setJob] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -46,19 +48,38 @@ export default function ViewJobPage({ params }: { params: { id: string } }) {
         };
 
         fetchJob();
-    }, [params]);
+    }, [params.id]);
+
+    // Add Escape key listener for modal
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsDeleteModalOpen(false);
+        };
+        if (isDeleteModalOpen) {
+            window.addEventListener('keydown', handleEscape);
+        }
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [isDeleteModalOpen]);
 
     const handleDelete = async () => {
         try {
             const res = await fetch(`/api/company/jobs/${job.id}`, { method: 'DELETE' });
             if (res.ok) {
-                window.location.href = '/dashboard/company/jobs';
+                toast.success('Job deleted successfully');
+                router.push('/dashboard/company/jobs');
             } else {
-                alert('Failed to delete job');
+                let errorMessage = 'Failed to delete job';
+                try {
+                    const errorData = await res.json();
+                    errorMessage = errorData.error || errorMessage;
+                } catch (jsonErr) {
+                    errorMessage = `${res.statusText || 'Server Error'} (${res.status})`;
+                }
+                toast.error(errorMessage);
             }
-        } catch (err) {
+        } catch (err: unknown) {
             console.error(err);
-            alert('Error deleting job');
+            toast.error(err instanceof Error ? err.message : 'Error deleting job');
         }
     };
 
@@ -268,8 +289,13 @@ export default function ViewJobPage({ params }: { params: { id: string } }) {
 
             {/* Delete Modal */}
             {isDeleteModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-                    <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '32px', animation: 'fadeIn 0.2s ease-out' }}>
+                <div
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsDeleteModalOpen(false);
+                    }}
+                    style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', cursor: 'pointer' }}
+                >
+                    <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '32px', animation: 'fadeIn 0.2s ease-out', cursor: 'default' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                             <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', flexShrink: 0 }}>
                                 <AlertCircle size={24} />
