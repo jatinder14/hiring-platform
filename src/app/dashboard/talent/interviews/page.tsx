@@ -29,15 +29,20 @@ export default function CompanyInterviewsPage() {
                         ['Interview', 'INTERVIEW', 'Shortlisted', 'SHORTLISTED'].includes(app.status)
                     );
 
-                    const mappedInterviews = interviewApps.map((app: AppItem) => ({
-                        id: app.id,
-                        candidateName: app.candidate?.name || 'Unknown Candidate',
-                        jobTitle: app.job?.title || 'Unknown Job',
-                        date: new Date(app.updatedAt).toLocaleDateString(),
-                        time: new Date(app.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        type: 'Video', // Default placeholder
-                        status: app.status
-                    }));
+                    const mappedInterviews = interviewApps.map((app: AppItem) => {
+                        const at = (app as { interviewScheduledAt?: string | null }).interviewScheduledAt
+                            ? new Date((app as { interviewScheduledAt: string }).interviewScheduledAt)
+                            : null;
+                        return {
+                            id: app.id,
+                            candidateName: app.candidate?.name || 'Unknown Candidate',
+                            jobTitle: app.job?.title || 'Unknown Job',
+                            date: at ? at.toLocaleDateString() : `Last updated ${new Date(app.updatedAt).toLocaleDateString()}`,
+                            time: at ? at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date(app.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            type: 'Video',
+                            status: app.status
+                        };
+                    });
                     setInterviews(mappedInterviews);
                 }
             } catch (error) {

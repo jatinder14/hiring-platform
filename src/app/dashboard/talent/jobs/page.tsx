@@ -216,11 +216,11 @@ export default function ManageJobsPage() {
                                     )}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Users size={14} />
-                                        <span>{job._count?.applications || 0} Applicants</span>
+                                        <span>{job.applicants ?? 0} Applicants</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Calendar size={14} />
-                                        <span>Posted {formatDate(job.createdAt)}</span>
+                                        <span>Posted {formatDate(job.postedDate)}</span>
                                     </div>
                                 </div>
                             </div>

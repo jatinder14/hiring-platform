@@ -91,7 +91,11 @@ export async function PATCH(
 
         const updateData: { status: ApplicationStatus; interviewScheduledAt?: Date } = { status: status as ApplicationStatus };
         if (interviewScheduledAt) {
-            updateData.interviewScheduledAt = new Date(interviewScheduledAt);
+            const date = new Date(interviewScheduledAt);
+            if (isNaN(date.getTime())) {
+                return NextResponse.json({ error: "Invalid interviewScheduledAt date format" }, { status: 400 });
+            }
+            updateData.interviewScheduledAt = date;
         }
 
         const updatedApplication = await prisma.application.update({

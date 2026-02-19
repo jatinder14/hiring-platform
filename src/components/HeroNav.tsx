@@ -25,7 +25,6 @@ export function HeroNav() {
   const userRole = session?.user?.role;
 
   const handleLoginClick = async (role: "recruiter" | "candidate") => {
-    // If authenticated, redirect only by actual role (talent cannot access recruiter dashboard and vice versa)
     if (status === "authenticated") {
       if (userRole === "recruiter") {
         router.push("/dashboard/company");
@@ -35,15 +34,11 @@ export function HeroNav() {
       return;
     }
 
-    // Set cookie to remember role (valid for 1 hour). Use Lax for OAuth redirects.
-    // We check if we are in production to add Secure, otherwise skip it for localhost http.
+    if (status === "loading") return;
+
     const isProduction = process.env.NODE_ENV === 'production';
     document.cookie = `login_role=${role}; path=/; max-age=3600; SameSite=Lax${isProduction ? '; Secure' : ''}`;
 
-    // Force sign out to ensure fresh session with new role
-    await signOut({ redirect: false });
-
-    // Update state and open modal
     setSelectedRole(role);
     setIsLoginModalOpen(true);
   };
@@ -71,7 +66,7 @@ export function HeroNav() {
           </nav>
 
           <div className="hn-actions">
-            {status !== "authenticated" && (
+            {status !== "authenticated" && status !== "loading" && (
               <>
                 <button type="button" onClick={() => handleLoginClick("recruiter")} className="hn-btn ghost">
                   Hire a Talent

@@ -41,13 +41,29 @@ export async function GET(
             return NextResponse.json({ error: "Forbidden - You can only view applications for your own jobs" }, { status: 403 });
         }
 
+        const PAGE_SIZE = 50;
         const applications = await prisma.application.findMany({
             where: { jobId: params.id, companyId: userId },
             orderBy: { appliedAt: 'desc' },
-            take: 50
+            take: PAGE_SIZE + 1,
+            select: {
+                id: true,
+                candidateId: true,
+                status: true,
+                appliedAt: true,
+                motivation: true,
+                resumeUrl: true,
+                interviewScheduledAt: true,
+                currentCTC: true,
+                expectedCTC: true,
+                noticePeriod: true,
+                city: true,
+            }
         });
 
-        return NextResponse.json(applications);
+        const hasMore = applications.length > PAGE_SIZE;
+        const data = applications.slice(0, PAGE_SIZE);
+        return NextResponse.json({ data, hasMore });
     } catch (error) {
         return api500("Failed to fetch applications", "GET /api/jobs/[id]/applications", error);
     }

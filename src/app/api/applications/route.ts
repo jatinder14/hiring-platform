@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { api500 } from "@/lib/apiError";
-import { ApplicationStatus } from "@prisma/client";
+import { ApplicationStatus, UserRole } from "@prisma/client";
 
 /**
  * POST /api/applications
@@ -18,6 +18,14 @@ export async function POST(req: Request) {
 
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { userRole: true }
+        });
+        if (dbUser?.userRole !== UserRole.CANDIDATE) {
+            return NextResponse.json({ error: "Only candidates can apply" }, { status: 403 });
         }
 
         // 2. Parse request body
@@ -66,15 +74,6 @@ export async function POST(req: Request) {
             return NextResponse.json({
                 error: `This job is not accepting applications (Status: ${job.status})`
             }, { status: 400 });
-        }
-
-        // 5. 🛡️ DATA INTEGRITY: Candidate must exist (created at sign-in via NextAuth)
-        const existingUser = await prisma.user.findUnique({
-            where: { id: userId }
-        });
-
-        if (!existingUser) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         // 6. Check if user already applied to this job

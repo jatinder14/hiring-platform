@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRecruiterBasePath } from '@/components/RecruiterBasePathContext';
 import {
     LayoutDashboard,
     PlusCircle,
@@ -16,8 +17,7 @@ import { signOut } from "next-auth/react";
 
 export default function CompanySidebar() {
     const pathname = usePathname();
-    const isCompany = pathname.startsWith('/dashboard/company');
-    const base = isCompany ? '/dashboard/company' : '/dashboard/talent';
+    const base = useRecruiterBasePath();
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, href: base },
         { label: 'Create Job', icon: PlusCircle, href: `${base}/create-job` },
@@ -73,7 +73,7 @@ export default function CompanySidebar() {
                             href={item.href}
                             className={`mobile-nav-item ${isActive ? 'active' : ''}`}
                         >
-                            <item.icon />
+                            <item.icon size={20} />
                             <span style={{ fontSize: '10px' }}>{item.label}</span>
                         </Link>
                     );
@@ -85,7 +85,7 @@ export default function CompanySidebar() {
                     style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                     onClick={() => signOut({ callbackUrl: "/" })}
                 >
-                    <LogOut />
+                    <LogOut size={20} />
                     <span>Logout</span>
                 </button>
             </nav>

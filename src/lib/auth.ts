@@ -31,36 +31,22 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         jwt: async ({ token, user, trigger }) => {
             if (user && user.email) {
-                // Check if user exists in DB
-                let dbUser = await prisma.user.findUnique({
-                    where: { email: user.email },
-                });
-
-                // If new user, create record with role from cookie (or default)
-                if (!dbUser) {
-                    try {
-                        const roleCookie = cookies().get("login_role")?.value;
-                        let initialRole: UserRole = UserRole.CANDIDATE;
-                        if (roleCookie === "recruiter") {
-                            initialRole = UserRole.RECRUITER;
-                        }
-
-                        dbUser = await prisma.user.create({
-                            data: {
-                                email: user.email,
-                                name: user.name,
-                                profileImageUrl: user.image,
-                                userRole: initialRole,
-                            }
-                        });
-                        if (process.env.NODE_ENV !== "production") {
-                            console.log("[AUTH] New user created:", dbUser.id);
-                        }
-                    } catch (error) {
-                        console.error("[AUTH] Failed to create user:", error);
-                        throw error;
-                    }
+                const roleCookie = cookies().get("login_role")?.value;
+                let initialRole: UserRole = UserRole.CANDIDATE;
+                if (roleCookie === "recruiter") {
+                    initialRole = UserRole.RECRUITER;
                 }
+
+                const dbUser = await prisma.user.upsert({
+                    where: { email: user.email },
+                    update: {},
+                    create: {
+                        email: user.email,
+                        name: user.name,
+                        profileImageUrl: user.image,
+                        userRole: initialRole,
+                    },
+                });
 
                 // Always use the role from the database
                 token.role = dbUser.userRole === UserRole.RECRUITER ? "recruiter" : "candidate";

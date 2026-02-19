@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 type EditorInstance = { destroy?: () => void } | null;
 
 export default function RichTextEditor({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder?: string }) {
     const editorRef = useRef<EditorInstance>(null);
     const [isMounted, setIsMounted] = useState(false);
+    const editorId = useId();
+    const onChangeRef = useRef(onChange);
+    useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -27,7 +30,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
             if (editorRef.current) return;
 
             const editor = new EditorJS({
-                holder: 'editorjs-container',
+                holder: editorId,
                 placeholder: placeholder || 'Start typing...',
                 tools: {
                     header: Header,
@@ -43,7 +46,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
                 },
                 onChange: async () => {
                     const data = await editor.save();
-                    onChange(JSON.stringify(data));
+                    onChangeRef.current(JSON.stringify(data));
                 },
                 autofocus: true,
             });
@@ -57,7 +60,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
                 editorRef.current = null;
             }
         };
-    }, [isMounted]);
+    }, [isMounted, editorId]);
 
     const tryParseJSON = (jsonString: string) => {
         try {
@@ -93,7 +96,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
                 h3.ce-header { font-size: 1.17em; font-weight: bold; }
                 .ce-header { padding: 0.5em 0; margin-bottom: 0.5em; }
             `}</style>
-            <div id="editorjs-container" style={{ minHeight: '200px' }} />
+            <div id={editorId} style={{ minHeight: '200px' }} />
         </div>
     );
 }

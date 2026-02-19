@@ -79,10 +79,17 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
                 }
 
                 setFormData({
-                    ...data,
+                    title: data.title ?? '',
+                    company: data.company ?? '',
+                    location: data.location ?? '',
+                    description: data.description ?? '',
+                    employmentType: data.employmentType ?? 'Full-time',
+                    category: data.category ?? '',
+                    skills: Array.isArray(data.skills) ? data.skills : [],
                     salaryMin: min,
                     salaryMax: max,
-                    skills: data.skills || []
+                    currency: data.currency ?? 'USD',
+                    status: data.status ?? 'DRAFT'
                 });
             } catch (error) {
                 console.error(error);

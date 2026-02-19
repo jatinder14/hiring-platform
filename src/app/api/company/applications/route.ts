@@ -63,47 +63,16 @@ export async function GET(req: Request) {
         }
 
         type AppWithJob = { candidateId: string; job: { id: string; title: string; category: string; employmentType: string; location: string; companyId: string } | null };
-        let applications: AppWithJob[] = [];
-
-        if (!statusParam) {
-            const activeApps = await prisma.application.findMany({
-                where: { ...whereClause, status: { in: statusMap['Active'] } },
-                include: {
-                    job: {
-                        select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
-                    }
-                },
-                orderBy: { appliedAt: 'desc' }
-            });
-
-            if (activeApps.length > 0) {
-                applications = activeApps as AppWithJob[];
-            } else {
-                applications = (await prisma.application.findMany({
-                    where: {
-                        ...whereClause,
-                        status: { in: [...statusMap['Inactive'], ...statusMap['Withdrawn']] }
-                    },
-                    include: {
-                        job: {
-                            select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
-                        }
-                    },
-                    orderBy: { appliedAt: 'desc' },
-                    take: 50
-                })) as AppWithJob[];
-            }
-        } else {
-            applications = (await prisma.application.findMany({
-                where: whereClause,
-                include: {
-                    job: {
-                        select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
-                    }
-                },
-                orderBy: { appliedAt: 'desc' }
-            })) as AppWithJob[];
-        }
+        const applications = (await prisma.application.findMany({
+            where: whereClause,
+            include: {
+                job: {
+                    select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
+                }
+            },
+            orderBy: { appliedAt: 'desc' },
+            take: 50
+        })) as AppWithJob[];
 
         const verified = applications.filter((app) => app.job && app.job.companyId === userId);
         const candidateIds = Array.from(new Set(verified.map((app) => app.candidateId)));

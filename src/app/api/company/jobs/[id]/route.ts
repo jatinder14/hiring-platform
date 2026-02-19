@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { UserRole } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { api500 } from '@/lib/apiError';
+
+async function ensureRecruiter(userId: string | undefined) {
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { userRole: true }
+    });
+    if (!dbUser || dbUser.userRole !== UserRole.RECRUITER) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return null;
+}
 
 export async function GET(
     request: Request,
@@ -11,10 +24,8 @@ export async function GET(
     try {
         const session = await getServerSession(authOptions);
         const userId = session?.user?.id as string | undefined;
-
-        if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const authError = await ensureRecruiter(userId);
+        if (authError) return authError;
 
         const id = params.id;
         const job = await prisma.job.findUnique({
@@ -43,10 +54,8 @@ export async function PUT(
     try {
         const session = await getServerSession(authOptions);
         const userId = session?.user?.id as string | undefined;
-
-        if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const authError = await ensureRecruiter(userId);
+        if (authError) return authError;
 
         const id = params.id;
         const body = await request.json();
@@ -91,10 +100,8 @@ export async function DELETE(
     try {
         const session = await getServerSession(authOptions);
         const userId = session?.user?.id as string | undefined;
-
-        if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const authError = await ensureRecruiter(userId);
+        if (authError) return authError;
 
         const id = params.id;
         const existingJob = await prisma.job.findUnique({ where: { id } });
@@ -107,8 +114,10 @@ export async function DELETE(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        await prisma.application.deleteMany({ where: { jobId: id } });
-        await prisma.job.delete({ where: { id } });
+        await prisma.$transaction([
+            prisma.application.deleteMany({ where: { jobId: id } }),
+            prisma.job.delete({ where: { id } }),
+        ]);
 
         return NextResponse.json({ message: "Job deleted successfully" });
     } catch (error) {

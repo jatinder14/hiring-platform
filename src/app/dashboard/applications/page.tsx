@@ -153,16 +153,16 @@ export default function ApplicationsPage() {
                                         color: '#3b82f6',
                                         flexShrink: 0
                                     }}>
-                                        {app.job?.company?.charAt(0) || 'C'}
+                                        {app.company?.charAt(0) || 'C'}
                                     </div>
                                     <div>
                                         <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.jobTitle}</h3>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px', flexWrap: 'wrap' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.company}</span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}</span>
-                                            {(app.experienceMin !== undefined || app.experienceMax !== undefined) && (
+                                            {(app.experienceMin != null || app.experienceMax != null) && (
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                                    {app.experienceMin}-{app.experienceMax} Yrs Exp Required
+                                                    {app.experienceMin ?? '?'}-{app.experienceMax ?? '?'} Yrs Exp Required
                                                 </span>
                                             )}
                                         </div>

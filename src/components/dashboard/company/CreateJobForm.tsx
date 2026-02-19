@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 type JobData = {
     title: string;
+    company: string;
     employmentType: string;
     country: string;
     state: string;
@@ -76,6 +77,7 @@ export default function CreateJobForm() {
     // Form State
     const [formData, setFormData] = useState<JobData>({
         title: '',
+        company: (typeof session?.user === 'object' && session?.user && 'name' in session.user && session.user.name) ? String(session.user.name) : '',
         employmentType: 'Full-time',
         country: '',
         state: '',
@@ -167,8 +169,7 @@ export default function CreateJobForm() {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            // Get company name from session or default
-            const companyName = (session?.user as { name?: string })?.name || "My Company";
+            const companyName = formData.company?.trim() || (session?.user as { name?: string })?.name || "My Company";
 
             // Range Validations
             if (formData.salaryMax && Number(formData.salaryMin) > Number(formData.salaryMax)) {
@@ -240,6 +241,12 @@ export default function CreateJobForm() {
 
     const isStep1Valid = formData.title && formData.salaryMin && formData.description && formData.expMin;
 
+    const missingRequired: string[] = [];
+    if (!formData.title?.trim()) missingRequired.push("Job Title");
+    if (!formData.salaryMin) missingRequired.push("Min Salary");
+    if (!formData.description?.trim()) missingRequired.push("Job Description");
+    if (!formData.expMin) missingRequired.push("Min Experience (years)");
+
     return (
         <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 20px 40px' }}>
             {/* Stepper Header */}
@@ -307,6 +314,19 @@ export default function CreateJobForm() {
                                         placeholder="e.g. Senior Frontend Engineer"
                                         className="form-input"
                                         maxLength={50}
+                                    />
+                                </div>
+                                {/* Company Name */}
+                                <div className="form-group">
+                                    <label className="form-label" style={{ fontWeight: '700', margin: 0 }}>Company Name</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g. Acme Inc."
+                                        name="company"
+                                        value={formData.company}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                                        maxLength={100}
                                     />
                                 </div>
                                 {formData.title.length >= 50 && (
@@ -700,22 +720,29 @@ export default function CreateJobForm() {
                     )}
 
                     {currentStep < 2 ? (
-                        <button
-                            type="button"
-                            onClick={handleNext}
-                            disabled={!isStep1Valid}
-                            style={{
-                                border: 'none', background: !isStep1Valid ? '#94a3b8' : '#3b82f6', color: 'white',
-                                padding: '12px 32px', borderRadius: '12px', fontSize: '15px', fontWeight: '700',
-                                cursor: !isStep1Valid ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                boxShadow: !isStep1Valid ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.3)'
-                            }}
-                            onMouseEnter={e => !isStep1Valid ? null : e.currentTarget.style.background = '#2563eb'}
-                            onMouseLeave={e => !isStep1Valid ? null : e.currentTarget.style.background = '#3b82f6'}
-                        >
-                            Review Posting <ChevronRight size={18} />
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                            {!isStep1Valid && missingRequired.length > 0 && (
+                                <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+                                    Complete required fields: {missingRequired.join(", ")}
+                                </p>
+                            )}
+                            <button
+                                type="button"
+                                onClick={handleNext}
+                                disabled={!isStep1Valid}
+                                style={{
+                                    border: 'none', background: !isStep1Valid ? '#94a3b8' : '#3b82f6', color: 'white',
+                                    padding: '12px 32px', borderRadius: '12px', fontSize: '15px', fontWeight: '700',
+                                    cursor: !isStep1Valid ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
+                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                    boxShadow: !isStep1Valid ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.3)'
+                                }}
+                                onMouseEnter={e => !isStep1Valid ? null : e.currentTarget.style.background = '#2563eb'}
+                                onMouseLeave={e => !isStep1Valid ? null : e.currentTarget.style.background = '#3b82f6'}
+                            >
+                                Review Posting <ChevronRight size={18} />
+                            </button>
+                        </div>
                     ) : (
                         <button
                             type="button"

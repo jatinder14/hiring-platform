@@ -96,7 +96,7 @@ model Application {
   candidate    User              @relation("CandidateApplications", fields: [candidateId], references: [id])
   
   // 🔒 SECURITY: Direct company link for efficient filtering & isolation
-  companyId    String            // User id of company (denormalized for security & performance)
+  companyId    String            @db.ObjectId // User id of company (denormalized for security & performance)
   
   resumeUrl    String
   motivation   String?

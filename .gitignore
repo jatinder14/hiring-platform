@@ -56,3 +56,6 @@ pnpm-debug.log*
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Chrome DevTools workspace (developer-local, not for VCS)
+public/.well-known/appspecific/com.chrome.devtools.json

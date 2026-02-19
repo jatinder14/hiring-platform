@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { UserRole } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { api500 } from '@/lib/apiError';
@@ -13,7 +14,15 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const [jobs, applications] = await Promise.all([
+        const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { userRole: true }
+        });
+        if (!dbUser || dbUser.userRole !== UserRole.RECRUITER) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        const [jobs, applicationsForActivity, totalApplications, uniqueCandidatesCount, interviewCount] = await Promise.all([
             prisma.job.findMany({
                 where: { companyId: userId },
                 select: { status: true }
@@ -25,10 +34,18 @@ export async function GET() {
                 },
                 orderBy: { appliedAt: 'desc' },
                 take: 50
+            }),
+            prisma.application.count({ where: { companyId: userId } }),
+            prisma.application.groupBy({
+                by: ['candidateId'],
+                where: { companyId: userId }
+            }).then(g => g.length),
+            prisma.application.count({
+                where: { companyId: userId, status: 'INTERVIEW' }
             })
         ]);
 
-        const candidateIds = Array.from(new Set(applications.map(a => a.candidateId)));
+        const candidateIds = Array.from(new Set(applicationsForActivity.map(a => a.candidateId)));
         const candidates = await prisma.user.findMany({
             where: { id: { in: candidateIds } },
             select: { id: true, name: true }
@@ -37,11 +54,8 @@ export async function GET() {
         const candidateMap = new Map(candidates.map(c => [c.id, c]));
 
         const activeJobs = jobs.filter(j => j.status === 'ACTIVE').length;
-        const totalApplications = applications.length;
-        const uniqueCandidates = candidateIds.length;
-        const interviewCount = applications.filter(a => ['INTERVIEW', 'Interview'].includes(a.status)).length;
 
-        const recentActivity = applications.slice(0, 5).map(app => {
+        const recentActivity = applicationsForActivity.slice(0, 5).map(app => {
             const candidate = candidateMap.get(app.candidateId);
             return {
                 id: app.id,
@@ -55,7 +69,7 @@ export async function GET() {
         return NextResponse.json({
             stats: {
                 activeJobs,
-                totalCandidates: uniqueCandidates,
+                totalCandidates: uniqueCandidatesCount,
                 totalApplications,
                 interviews: interviewCount
             },

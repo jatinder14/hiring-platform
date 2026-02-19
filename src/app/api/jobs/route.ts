@@ -72,8 +72,8 @@ export async function POST(req: Request) {
                 currency,
                 companyId: userId,
                 status: status === 'ACTIVE' ? 'ACTIVE' : 'DRAFT',
-                experienceMin: experienceMin ? parseInt(experienceMin) : null,
-                experienceMax: experienceMax ? parseInt(experienceMax) : null,
+                experienceMin: experienceMin != null && experienceMin !== '' ? parseInt(String(experienceMin), 10) : null,
+                experienceMax: experienceMax != null && experienceMax !== '' ? parseInt(String(experienceMax), 10) : null,
             }
         });
 

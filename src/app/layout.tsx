@@ -20,6 +20,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <SessionProvider>
           <NextTopLoader color="#00ffe6" showSpinner={false} />
+          <Toaster richColors position="top-right" />
           {children}
         </SessionProvider>
       </body>

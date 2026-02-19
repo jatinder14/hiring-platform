@@ -13,20 +13,15 @@ async function main() {
     // We will try raw update or updateMany.
     // updateMany is safer as it doesn't require fetching.
 
-    try {
-        const result = await prisma.user.updateMany({
-            where: {
-                userRole: 'CLIENT'
-            },
-            data: {
-                userRole: 'RECRUITER'
-            }
-        });
-        console.log(`Migrated ${result.count} users.`);
-    } catch (e) {
-        console.error("Error during migration:", e);
-    }
-
+    const result = await prisma.user.updateMany({
+        where: {
+            userRole: 'CLIENT'
+        },
+        data: {
+            userRole: 'RECRUITER'
+        }
+    });
+    console.log(`Migrated ${result.count} users.`);
     console.log('Migration finished.');
 }
 

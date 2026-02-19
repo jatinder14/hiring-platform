@@ -159,8 +159,6 @@ export function TreeLayer() {
       treeCtx.fillRect(0, 0, W, H);
       treeCtx.restore();
 
-      treeCtx.restore();
-
       treeAnimId = requestAnimationFrame(drawTree);
     }
     let treeAnimId = requestAnimationFrame(drawTree);

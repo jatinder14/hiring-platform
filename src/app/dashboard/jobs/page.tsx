@@ -93,6 +93,10 @@ export default function JobsPage() {
             return false;
         }
 
+        if (filters.category !== 'All Categories' && job.category !== filters.category) {
+            return false;
+        }
+
         // Skill Filter (Simple text match)
         if (filters.skills && !job.skills.some(skill => skill.toLowerCase().includes(filters.skills.toLowerCase()))) return false;
 

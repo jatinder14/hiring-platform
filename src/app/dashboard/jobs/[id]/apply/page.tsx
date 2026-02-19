@@ -188,9 +188,10 @@ export default function ApplyPage() {
                 }
                 finalResumeUrl = resumeLink;
             } else {
-                // Mock upload logic - In a real app, this would be the S3/Cloudinary URL
-                // We use a valid HTTPS placeholder to pass backend validation
-                finalResumeUrl = "https://hireu-storage.example.com/resumes/mock_resume_file.pdf";
+                // Resume upload not yet implemented - require link to avoid submitting fake URLs
+                toast.error("Resume upload is not available yet. Please use 'Paste a link' and provide a URL to your resume (e.g. Google Drive, Dropbox).");
+                setIsSubmitting(false);
+                return;
             }
 
             const response = await fetch('/api/applications', {

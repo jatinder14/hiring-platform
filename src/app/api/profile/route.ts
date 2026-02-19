@@ -13,7 +13,22 @@ export async function GET() {
         }
 
         const user = await prisma.user.findUnique({
-            where: { id: session.user.id }
+            where: { id: session.user.id },
+            select: {
+                name: true,
+                email: true,
+                profileImageUrl: true,
+                phoneNumber: true,
+                country: true,
+                state: true,
+                city: true,
+                linkedin: true,
+                github: true,
+                twitter: true,
+                currentCTC: true,
+                expectedCTC: true,
+                noticePeriod: true,
+            }
         });
 
         if (!user) {
@@ -77,7 +92,7 @@ export async function PUT(req: Request) {
         const expectedCTCVal = trim(data.expectedCTC);
         const noticePeriodVal = trim(data.noticePeriod);
 
-        const updatedUser = await prisma.user.update({
+        await prisma.user.update({
             where: { id: session.user.id },
             data: {
                 ...(nameVal !== undefined && { name: nameVal }),
@@ -95,7 +110,25 @@ export async function PUT(req: Request) {
             },
         });
 
-        return NextResponse.json(updatedUser);
+        const updatedUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: {
+                name: true,
+                email: true,
+                profileImageUrl: true,
+                phoneNumber: true,
+                country: true,
+                state: true,
+                city: true,
+                linkedin: true,
+                github: true,
+                twitter: true,
+                currentCTC: true,
+                expectedCTC: true,
+                noticePeriod: true,
+            }
+        });
+        return NextResponse.json(updatedUser!);
     } catch (error) {
         return api500("Failed to update profile", "PUT profile", error);
     }
