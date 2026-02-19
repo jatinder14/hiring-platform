@@ -45,7 +45,7 @@ export const authOptions: NextAuthOptions = {
                         let initialRole: UserRole = UserRole.CANDIDATE;
 
                         if (roleCookie === "recruiter") {
-                            initialRole = UserRole.RECRUITER;
+                            initialRole = UserRole.CLIENT;
                         }
 
                         console.log(`[AUTH] Creating new user: ${user.email} with role: ${initialRole}`);
@@ -66,7 +66,7 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 // Always use the role from the database
-                token.role = dbUser.userRole === UserRole.RECRUITER ? "recruiter" : "candidate";
+                token.role = dbUser.userRole === UserRole.CLIENT ? "recruiter" : "candidate";
                 token.id = dbUser.id;
             }
             return token;

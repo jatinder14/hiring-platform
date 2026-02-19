@@ -2,18 +2,17 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { logger } from "@/lib/logger";
 
 export async function POST(req: Request) {
-    logger.info('[API] POST / api/applications - Request received');
+    console.log('[API] POST / api/applications - Request received');
 
     try {
         const session = await getServerSession(authOptions);
         const userId = session?.user?.id;
-        logger.info('[API] User ID from auth:', userId);
+        console.log('[API] User ID from auth:', userId);
 
         if (!userId) {
-            logger.warn('[API] Unauthorized - no userId');
+            console.log('[API] Unauthorized - no userId');
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -25,19 +24,20 @@ export async function POST(req: Request) {
 
         // Validate required fields
         if (!jobId || !resumeUrl) {
-            logger.warn('[API] Missing required fields');
+            console.log('[API] Missing required fields');
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        logger.info('[API] Attempting to create application...');
+        console.log('[API] Attempting to create application...');
 
+        // Try to create the application directly without checking if job exists first
         // Check if job exists first
         const job = await prisma.job.findUnique({
             where: { id: jobId }
         });
 
         if (!job) {
-            logger.error('[API] Job not found:', jobId);
+            console.log('[API] Job not found:', jobId);
             return NextResponse.json({ error: "Job not found" }, { status: 404 });
         }
 
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
         });
 
         if (existingApplication) {
-            logger.warn('[API] Duplicate application attempt:', { jobId, userId });
+            console.log('[API] Duplicate application attempt:', { jobId, userId });
             return NextResponse.json({ error: "You have already applied to this job" }, { status: 409 });
         }
 
@@ -71,11 +71,11 @@ export async function POST(req: Request) {
                 }
             });
 
-            logger.info('[API] Application created successfully:', application.id);
+            console.log('[API] Application created successfully:', application.id);
             return NextResponse.json(application, { status: 201 });
 
         } catch (prismaError: any) {
-            logger.error('[API] Prisma error:', {
+            console.error('[API] Prisma error:', {
                 message: prismaError.message,
                 code: prismaError.code,
                 meta: prismaError.meta,
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
         }
 
     } catch (error: any) {
-        logger.error("[API] Unexpected error in POST /api/applications:", {
+        console.error("[API] Unexpected error in POST /api/applications:", {
             message: error.message,
             stack: error.stack,
             name: error.name
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-    logger.info('[API] GET /api/applications - Request received');
+    console.log('[API] GET /api/applications - Request received');
 
     try {
         const session = await getServerSession(authOptions);
@@ -119,11 +119,11 @@ export async function GET(req: Request) {
             orderBy: { appliedAt: 'desc' }
         });
 
-        logger.info(`[API] Found ${applications.length} applications for user ${userId}`);
+        console.log(`[API] Found ${applications.length} applications for user ${userId}`);
         return NextResponse.json(applications);
 
     } catch (error: any) {
-        logger.error("[API] Error in GET /api/applications:", error);
+        console.error("[API] Error in GET /api/applications:", error);
         return NextResponse.json({
             error: "Failed to fetch applications",
             details: "An error occurred while retrieving your applications."

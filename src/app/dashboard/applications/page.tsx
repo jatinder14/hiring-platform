@@ -7,10 +7,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-import { Application, Job } from '@prisma/client';
-
-type ApplicationWithJob = Application & { job: Job };
-
 // Mock data removed in favor of API fetching
 
 const getStatusBadge = (status: string) => {
@@ -38,7 +34,7 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function ApplicationsPage() {
-    const [applications, setApplications] = useState<ApplicationWithJob[]>([]);
+    const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

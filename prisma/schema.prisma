@@ -13,7 +13,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+<<<<<<< HEAD
   RECRUITER
+=======
+enum UserRole {
+  CLIENT
+>>>>>>> parent of fb7388e (Implemented some more suggestion)
   CANDIDATE
 }
 
@@ -48,34 +53,14 @@ enum ApplicationStatus {
   HIRED
 }
 
-enum EmploymentType {
-  FULL_TIME
-  PART_TIME
-  CONTRACT
-  INTERNSHIP
-  FREELANCE
-}
-
-enum JobCategory {
-  ENGINEERING
-  DESIGN
-  MARKETING
-  PRODUCT
-  QA
-  SALES
-  HR
-  FINANCE
-  OTHER
-}
-
 model Job {
-  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
   title           String
   company         String
   location        String
   description     String
-  employmentType  EmploymentType // e.g., FULL_TIME
-  category        JobCategory
+  employmentType  String        // e.g., FULL_TIME, REMOTE
+  category        String
   skills          String[]
   salary          String?       // e.g. "150,000"
   currency        String?       // e.g. "USD"
