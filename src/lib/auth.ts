@@ -65,15 +65,6 @@ export const authOptions: NextAuthOptions = {
                     }
                 }
 
-                // LEGACY MIGRATION: If user has old 'CLIENT' role, update to 'RECRUITER'
-                if (dbUser.userRole === UserRole.CLIENT) {
-                    console.log(`[AUTH] Migrating legacy user ${dbUser.email} from CLIENT to RECRUITER`);
-                    dbUser = await prisma.user.update({
-                        where: { id: dbUser.id },
-                        data: { userRole: UserRole.RECRUITER }
-                    });
-                }
-
                 // Always use the role from the database
                 token.role = dbUser.userRole === UserRole.RECRUITER ? "recruiter" : "candidate";
                 token.id = dbUser.id;

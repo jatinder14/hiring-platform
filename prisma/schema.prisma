@@ -13,10 +13,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
   RECRUITER
   CANDIDATE
-  CLIENT
 }
 
 model User {
