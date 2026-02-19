@@ -53,3 +53,6 @@ pnpm-debug.log*
 .yarn
 .pnp
 .pnp.js
+
+# clerk configuration (can include secrets)
+/.clerk/
