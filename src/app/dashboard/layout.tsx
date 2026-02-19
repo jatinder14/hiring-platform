@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import Sidebar from '@/components/dashboard/Sidebar';
 import CompanySidebar from '@/components/dashboard/CompanySidebar';
+import prisma from '@/lib/prisma';
 import './dashboard.css';
 
 export default async function DashboardLayout({

@@ -13,12 +13,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-<<<<<<< HEAD
-  RECRUITER
-=======
 enum UserRole {
-  CLIENT
->>>>>>> parent of fb7388e (Implemented some more suggestion)
+  RECRUITER
   CANDIDATE
 }
 
@@ -51,6 +47,14 @@ enum ApplicationStatus {
   REJECTED
   INTERVIEW
   HIRED
+  WITHDRAWN
+}
+
+enum JobStatus {
+  DRAFT      // Not visible to candidates
+  ACTIVE     // Accepting applications
+  CLOSED     // No longer accepting applications
+  ARCHIVED   // Old/deleted jobs
 }
 
 model Job {
@@ -64,26 +68,50 @@ model Job {
   skills          String[]
   salary          String?       // e.g. "150,000"
   currency        String?       // e.g. "USD"
-  postedById      String        @db.ObjectId
-  postedBy        User          @relation(fields: [postedById], references: [id])
+  experienceMin   Int?          // Min experience in years
+  experienceMax   Int?          // Max experience in years
+  
+  // 🔒 SECURITY: Company ownership (REQUIRED for multi-tenant isolation)
+  companyId       String        // Clerk ID of company (was postedById)
+  
+  // 🔒 SECURITY: Job visibility control
+  status          JobStatus     @default(DRAFT)
+  
   createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   applications    Application[]
+  
+  // Performance indexes
+  @@index([companyId])
+  @@index([status])
+  @@index([companyId, status])
 }
 
 model Application {
   id           String            @id @default(auto()) @map("_id") @db.ObjectId
   jobId        String            @db.ObjectId
   job          Job               @relation(fields: [jobId], references: [id])
-  candidateId  String            @db.ObjectId
-  candidate    User              @relation(fields: [candidateId], references: [id])
+  candidateId  String            // Clerk ID of the candidate
+  
+  // 🔒 SECURITY: Direct company link for efficient filtering & isolation
+  companyId    String            // CRITICAL: Denormalized for security & performance
+  
   resumeUrl    String
   motivation   String?
   currentCTC   String?
   expectedCTC  String?
+  currentCurrency  String?
+  expectedCurrency String?
   noticePeriod String?
   city         String?
   status       ApplicationStatus @default(APPLIED)
   appliedAt    DateTime          @default(now())
-
+  interviewScheduledAt DateTime?     // Dedicated field for scheduled interviews
+  
+  // Performance indexes
+  @@index([companyId])
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([companyId, status])
   @@unique([jobId, candidateId])
 }

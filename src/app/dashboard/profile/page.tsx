@@ -7,6 +7,7 @@ import {
     Linkedin, Github, Twitter, Trash2, Eye, FileText, Image as ImageIcon,
     ChevronDown, Search
 } from 'lucide-react';
+import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 
 const LocationSelector = dynamic(() => import('@/components/dashboard/LocationSelector'), {
@@ -446,20 +447,19 @@ export default function ProfilePage() {
                     <div className="form-grid">
                         <div className="form-group">
                             <label className="form-label">Current CTC (Annual) - Optional</label>
-                            <div className="flex gap-2">
+                            <div className="currency-input-group">
                                 <select
-                                    className="form-input"
-                                    style={{ minWidth: '180px', maxWidth: '45%', flexShrink: 0 }}
+                                    className="form-input currency-select"
                                     value={currentCurrency.code}
                                     onChange={(e) => setCurrentCurrencyCode(e.target.value)}
                                 >
                                     {CURRENCIES.map(c => (
                                         <option key={c.code} value={c.code}>
-                                            {c.country} - {c.name} - {c.code}
+                                            {c.code} ({c.symbol})
                                         </option>
                                     ))}
                                 </select>
-                                <div className="input-wrapper" style={{ flex: 1 }}>
+                                <div className="input-wrapper amount-input">
                                     <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#374151', pointerEvents: 'none' }}>
                                         {currentCurrency.symbol}
                                     </span>
@@ -470,6 +470,7 @@ export default function ProfilePage() {
                                         placeholder="Amount"
                                         value={currentCTC}
                                         onChange={(e) => setCurrentCTC(e.target.value)}
+                                        min="0"
                                     />
                                 </div>
                             </div>
@@ -477,20 +478,19 @@ export default function ProfilePage() {
 
                         <div className="form-group">
                             <label className="form-label">Expected CTC - Optional</label>
-                            <div className="flex gap-2">
+                            <div className="currency-input-group">
                                 <select
-                                    className="form-input"
-                                    style={{ minWidth: '180px', maxWidth: '45%', flexShrink: 0 }}
+                                    className="form-input currency-select"
                                     value={expectedCurrency.code}
                                     onChange={(e) => setExpectedCurrencyCode(e.target.value)}
                                 >
                                     {CURRENCIES.map(c => (
                                         <option key={c.code} value={c.code}>
-                                            {c.country} - {c.name} - {c.code}
+                                            {c.code} ({c.symbol})
                                         </option>
                                     ))}
                                 </select>
-                                <div className="input-wrapper" style={{ flex: 1 }}>
+                                <div className="input-wrapper amount-input">
                                     <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#374151', pointerEvents: 'none' }}>
                                         {expectedCurrency.symbol}
                                     </span>
@@ -501,6 +501,7 @@ export default function ProfilePage() {
                                         placeholder="Amount"
                                         value={expectedCTC}
                                         onChange={(e) => setExpectedCTC(e.target.value)}
+                                        min="0"
                                     />
                                 </div>
                             </div>
@@ -593,8 +594,10 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="form-actions mt-8 flex justify-between gap-4">
-                        <button type="button" className="btn-secondary">Cancel</button>
-                        <button type="submit" className="btn-primary">Save Changes</button>
+                        <button type="button" className="btn-secondary" disabled={isSaving}>Cancel</button>
+                        <button type="submit" className="btn-primary" disabled={isSaving}>
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
                     </div>
                 </form>
             </div >

@@ -14,7 +14,7 @@ body {
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   background: #05070c;
   color: #fff;
   overflow-x: hidden;
@@ -1316,4 +1316,278 @@ body.tree-exit .tree-layer {
 .hn-drawer-link:hover {
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
+/* Production-Ready Candidate Card & Filter System */
+.business-filter-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-wrapper {
+  flex: 1;
+  min-width: 250px;
+  position: relative;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+}
+
+.hireu-candidate-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  gap: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  position: relative;
+  align-items: stretch;
+  /* Stretch to keep sections equal height */
+}
+
+.hireu-candidate-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Left Section: Info Cluster */
+.candidate-content-left {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.candidate-avatar-wrapper {
+  flex-shrink: 0;
+}
+
+.candidate-main-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.candidate-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.candidate-name-row h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.candidate-email-text {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.candidate-meta-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.meta-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  background: #f8fafc;
+  padding: 4px 12px;
+  border-radius: 8px;
+  color: #475569;
+  border: 1px solid #f1f5f9;
+}
+
+/* Right Section: Status & Actions */
+.candidate-actions-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-width: 240px;
+  padding-left: 24px;
+  border-left: 1px solid #f1f5f9;
+}
+
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.status-badge.active {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #d1fae5;
+}
+
+.status-badge.withdrawn {
+  background: #fff1f2;
+  color: #dc2626;
+  border: 1px solid #ffe4e6;
+}
+
+.status-badge.inactive {
+  background: #f9fafb;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.action-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.icon-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.tool-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.tool-btn:hover {
+  background: #f1f5f9;
+  color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.profile-link-btn {
+  background: #3b82f6;
+  color: #fff;
+  text-decoration: none;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.profile-link-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.25);
+}
+
+/* Breakpoints Configuration */
+@media (max-width: 1100px) {
+  .hireu-candidate-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .candidate-actions-right {
+    flex-direction: row;
+    align-items: center;
+    min-width: unset;
+    padding-left: 0;
+    padding-top: 20px;
+    border-left: none;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .action-tools {
+    flex-direction: row;
+    width: auto;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .status-badge {
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .hireu-candidate-card {
+    padding: 18px;
+    gap: 16px;
+  }
+
+  .candidate-content-left {
+    gap: 12px;
+  }
+
+  .candidate-avatar-v2 {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .candidate-main-info {
+    position: relative;
+  }
+
+  .candidate-name-row h3 {
+    font-size: 16px;
+    max-width: 100%;
+  }
+
+  .candidate-meta-flex {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .candidate-actions-right {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .status-badge {
+    align-self: flex-start;
+  }
+
+  .action-tools {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .icon-row {
+    width: 100%;
+  }
+
+  .tool-btn {
+    flex: 1;
+    height: 46px;
+  }
+
+  .profile-link-btn {
+    width: 100%;
+    height: 48px;
+  }
 }

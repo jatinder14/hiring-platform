@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "@/components/SessionProvider";
 import NextTopLoader from 'nextjs-toploader';
+import { Toaster } from 'sonner';
 import "./globals.css";
 
 export const metadata: Metadata = {

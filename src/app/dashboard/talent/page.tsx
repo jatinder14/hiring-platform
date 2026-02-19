@@ -1,14 +1,55 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Briefcase, Users, Clock, ChevronRight, Activity, Zap } from 'lucide-react';
+import { Plus, Briefcase, Users, Clock, FileText, Zap, Loader2 } from 'lucide-react';
 
 export default function CompanyDashboardPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [stats, setStats] = useState({
+        activeJobs: 0,
+        totalCandidates: 0,
+        totalApplications: 0,
+        interviews: 0
+    });
+    const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const res = await fetch('/api/company/dashboard-stats');
+                if (!res.ok) throw new Error('Failed to fetch dashboard stats');
+
+                const data = await res.json();
+
+                setStats(data.stats);
+                setRecentActivity(data.recentActivity);
+
+            } catch (error) {
+                console.error("Failed to fetch dashboard data", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="animate-spin text-blue-500" size={40} />
+            </div>
+        );
+    }
+
     return (
-        <div className="dashboard-container">
+        <div className="dashboard-page-content">
             {/* Header Section */}
             <header className="page-header">
                 <div className="page-header-content">
                     <h1 className="page-title">Company Dashboard</h1>
-                    <p className="page-subtitle">Overview of your hiring pipeline and activity.</p>
+                    <p className="page-subtitle">Welcome back! Here's what's happening today.</p>
                 </div>
                 <Link
                     href="/dashboard/talent/create-job"
@@ -21,7 +62,7 @@ export default function CompanyDashboardPage() {
 
             {/* Stats Grid */}
             <div className="stats-grid">
-                {/* Active Jobs Card */}
+                {/* Active Jobs */}
                 <div className="stat-card">
                     <div className="stat-header">
                         <div className="stat-icon blue">
@@ -29,17 +70,17 @@ export default function CompanyDashboardPage() {
                         </div>
                     </div>
                     <div className="stat-content">
-                        <span className="stat-value">3</span>
+                        <span className="stat-value">{stats.activeJobs}</span>
                         <span className="stat-label">Active Jobs</span>
                     </div>
                     <div className="stat-footer">
-                        <Link href="/dashboard/talent/jobs" className="stat-link">
-                            View all jobs <ChevronRight size={14} />
+                        <Link href="/dashboard/company/jobs" className="stat-link">
+                            View Jobs
                         </Link>
                     </div>
                 </div>
 
-                {/* Candidates Card */}
+                {/* Total Candidates */}
                 <div className="stat-card">
                     <div className="stat-header">
                         <div className="stat-icon purple">
@@ -47,17 +88,35 @@ export default function CompanyDashboardPage() {
                         </div>
                     </div>
                     <div className="stat-content">
-                        <span className="stat-value">12</span>
+                        <span className="stat-value">{stats.totalCandidates}</span>
                         <span className="stat-label">Total Candidates</span>
                     </div>
                     <div className="stat-footer">
-                        <Link href="/dashboard/talent/candidates" className="stat-link">
-                            View applications <ChevronRight size={14} />
+                        <Link href="/dashboard/company/candidates" className="stat-link">
+                            View Talent
                         </Link>
                     </div>
                 </div>
 
-                {/* Interviews Card */}
+                {/* Total Applications */}
+                <div className="stat-card">
+                    <div className="stat-header">
+                        <div className="stat-icon blue">
+                            <FileText size={22} />
+                        </div>
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{stats.totalApplications}</span>
+                        <span className="stat-label">Applications</span>
+                    </div>
+                    <div className="stat-footer">
+                        <Link href="/dashboard/company/candidates" className="stat-link">
+                            Review All
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Interviews */}
                 <div className="stat-card">
                     <div className="stat-header">
                         <div className="stat-icon orange">
@@ -65,12 +124,12 @@ export default function CompanyDashboardPage() {
                         </div>
                     </div>
                     <div className="stat-content">
-                        <span className="stat-value">5</span>
-                        <span className="stat-label">Upcoming Interviews</span>
+                        <span className="stat-value">{stats.interviews}</span>
+                        <span className="stat-label">Interviews</span>
                     </div>
                     <div className="stat-footer">
-                        <Link href="#" className="stat-link">
-                            View schedule <ChevronRight size={14} />
+                        <Link href="/dashboard/company/candidates" className="stat-link">
+                            View Schedule
                         </Link>
                     </div>
                 </div>
@@ -81,80 +140,38 @@ export default function CompanyDashboardPage() {
                 <div className="activity-section">
                     <div className="activity-header">
                         <h3 className="section-heading-text">Recent Activity</h3>
-                        <button className="view-all-btn">View All</button>
                     </div>
 
                     <div className="activity-list">
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Users size={18} />
+                        {recentActivity.length > 0 ? (
+                            recentActivity.map((item) => (
+                                <div key={item.id} className="activity-item">
+                                    <div className="activity-avatar">
+                                        <Users size={20} />
+                                    </div>
+                                    <div className="activity-content">
+                                        <p><strong>{item.user}</strong> applied for <strong>{item.role}</strong></p>
+                                        <span className="activity-time">{item.time}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8 text-gray-500">
+                                No recent activity
                             </div>
-                            <div className="activity-content">
-                                <p><strong>John Doe</strong> applied for <strong>Senior React Developer</strong></p>
-                                <span className="activity-time">2 hours ago</span>
-                            </div>
-                        </div>
-
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Briefcase size={18} />
-                            </div>
-                            <div className="activity-content">
-                                <p>New job posted: <strong>Product Designer</strong></p>
-                                <span className="activity-time">5 hours ago</span>
-                            </div>
-                        </div>
-
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Users size={18} />
-                            </div>
-                            <div className="activity-content">
-                                <p><strong>Sarah Smith</strong> applied for <strong>Backend Engineer</strong></p>
-                                <span className="activity-time">1 day ago</span>
-                            </div>
-                        </div>
-
-                        <div className="activity-item">
-                            <div className="activity-avatar">
-                                <Activity size={18} />
-                            </div>
-                            <div className="activity-content">
-                                <p>Your company profile was updated</p>
-                                <span className="activity-time">2 days ago</span>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Sidebar Widgets */}
+                {/* Sidebar Widgets - cleaned up */}
                 <div className="dashboard-sidebar-col">
                     {/* Promo Widget */}
                     <div className="sidebar-widget promo-widget">
                         <h3 className="promo-title">Boost your reach</h3>
-                        <p className="promo-desc">Post your job to featured listings to get 3x more applicants.</p>
+                        <p className="promo-desc">Get 3x more applicants by promoting your open roles to featured listings.</p>
                         <button className="promo-btn">
-                            Promote Job
+                            Promote a Job
                         </button>
-                    </div>
-
-                    {/* Pending Tasks */}
-                    <div className="sidebar-widget">
-                        <h3 className="widget-header">Pending Tasks</h3>
-                        <div className="task-list">
-                            <div className="task-item">
-                                <div className="task-icon orange"></div>
-                                <span>Review 5 new applications for <strong>React Dev</strong></span>
-                            </div>
-                            <div className="task-item">
-                                <div className="task-icon gray"></div>
-                                <span>Complete company profile setup</span>
-                            </div>
-                            <div className="task-item">
-                                <div className="task-icon gray"></div>
-                                <span>Schedule interview with <strong>Mike Ross</strong></span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

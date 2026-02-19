@@ -5,9 +5,8 @@ import {
     Briefcase, Calendar, ChevronRight, Filter,
     MoreVertical, CheckCircle, Clock, XCircle, UserCheck
 } from 'lucide-react';
+import { toast } from 'sonner';
 import Link from 'next/link';
-
-// Mock data removed in favor of API fetching
 
 const getStatusBadge = (status: string) => {
     const badgeStyle = {
@@ -17,17 +16,20 @@ const getStatusBadge = (status: string) => {
         whiteSpace: 'nowrap' as const
     };
 
-    switch (status) {
-        case 'Applied':
+    // Normalize for consistent checking if needed, or just handle cases.
+    switch (status?.toUpperCase()) {
+        case 'APPLIED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#eff6ff', color: '#3b82f6' }}><Clock size={14} style={{ flexShrink: 0 }} /> <span>Applied</span></span>;
-        case 'Shortlisted':
+        case 'SHORTLISTED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#ecfdf5', color: '#10b981' }}><UserCheck size={14} style={{ flexShrink: 0 }} /> <span>Shortlisted</span></span>;
-        case 'Interview':
+        case 'INTERVIEW':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#fff7ed', color: '#f97316' }}><Clock size={14} style={{ flexShrink: 0 }} /> <span>Interview</span></span>;
-        case 'Rejected':
+        case 'REJECTED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#fef2f2', color: '#ef4444' }}><XCircle size={14} style={{ flexShrink: 0 }} /> <span>Rejected</span></span>;
-        case 'Hired':
+        case 'HIRED':
             return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#ecfdf5', color: '#10b981' }}><CheckCircle size={14} style={{ flexShrink: 0 }} /> <span>Hired</span></span>;
+        case 'WITHDRAWN':
+            return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#f3f4f6', color: '#6b7280' }}><XCircle size={14} style={{ flexShrink: 0 }} /> <span>Withdrawn</span></span>;
         default:
             return <span className="tag" style={badgeStyle}>{status}</span>;
     }
@@ -36,25 +38,92 @@ const getStatusBadge = (status: string) => {
 export default function ApplicationsPage() {
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+    const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+    const [isWithdrawing, setIsWithdrawing] = useState(false);
+
+    const fetchApplications = async () => {
+        try {
+            const res = await fetch('/api/applications', { cache: 'no-store' });
+            if (!res.ok) throw new Error('Failed to fetch applications');
+
+            const data = await res.json();
+
+            const mappedApps = data.map((app: any) => ({
+                id: app.id,
+                jobTitle: app.job.title,
+                company: app.job.company,
+                appliedDate: app.appliedAt,
+                status: app.status,
+                experienceMin: app.job.experienceMin,
+                experienceMax: app.job.experienceMax,
+                logo: app.job.company.substring(0, 2).toUpperCase()
+            }));
+
+            setApplications(mappedApps);
+        } catch (err: any) {
+            console.error(err);
+            setError('Failed to load applications');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchApplications = async () => {
-            try {
-                const res = await fetch('/api/applications');
-                if (res.ok) {
-                    const data = await res.json();
-                    // Transform API data to match component expectation or update component to usage
-                    // The API returns { job: { title, company }, status, appliedAt, ... }
-                    setApplications(data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch applications", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchApplications();
     }, []);
+
+    const handleWithdraw = async () => {
+        if (!selectedAppId) return;
+        setIsWithdrawing(true);
+        try {
+            const res = await fetch(`/api/applications/${selectedAppId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'WITHDRAWN' })
+            });
+
+            if (res.ok) {
+                // Update local state instantly
+                setApplications(prev => prev.map(app =>
+                    app.id === selectedAppId ? { ...app, status: 'WITHDRAWN' } : app
+                ));
+                setIsWithdrawModalOpen(false);
+                toast.success('Application withdrawn successfully');
+            } else {
+                toast.error('Failed to withdraw application');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('Error withdrawing application');
+        } finally {
+            setIsWithdrawing(false);
+            setSelectedAppId(null);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '64px' }}>
+                <div className="animate-spin text-blue-500">Loading...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 text-center text-red-500">
+                <p>{error}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -67,8 +136,8 @@ export default function ApplicationsPage() {
                 <div className="applications-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {applications.map((app) => (
                         <div key={app.id} className="job-card" style={{ padding: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', width: '100%', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div className="application-card-content">
+                                <div className="application-info">
                                     <div style={{
                                         width: '48px',
                                         height: '48px',
@@ -79,24 +148,42 @@ export default function ApplicationsPage() {
                                         justifyContent: 'center',
                                         fontSize: '18px',
                                         fontWeight: '700',
-                                        color: '#3b82f6'
+                                        color: '#3b82f6',
+                                        flexShrink: 0
                                     }}>
                                         {app.job?.company?.charAt(0) || 'C'}
                                     </div>
                                     <div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.job?.title || 'Unknown Role'}</h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.job?.company || 'Unknown Company'}</span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt).toLocaleDateString()}</span>
+                                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.jobTitle}</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px', flexWrap: 'wrap' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.company}</span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}</span>
+                                            {(app.experienceMin !== undefined || app.experienceMax !== undefined) && (
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                                    {app.experienceMin}-{app.experienceMax} Yrs Exp Required
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                <div className="application-actions">
                                     {getStatusBadge(app.status)}
-                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                         <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>View Details</button>
-                                        <button className="action-btn" style={{ color: '#9ca3af' }}><MoreVertical size={20} /></button>
+                                        {app.status !== 'WITHDRAWN' && app.status !== 'REJECTED' && app.status !== 'HIRED' && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setSelectedAppId(app.id);
+                                                    setIsWithdrawModalOpen(true);
+                                                }}
+                                                className="btn-secondary"
+                                                style={{ padding: '8px 16px', fontSize: '13px', color: '#dc2626', borderColor: '#fecaca' }}
+                                            >
+                                                Withdraw
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -115,6 +202,54 @@ export default function ApplicationsPage() {
                     <Link href="/dashboard/jobs" className="btn-primary">
                         Browse Available Jobs
                     </Link>
+                </div>
+            )}
+
+            {/* Withdraw Confirmation Modal */}
+            {isWithdrawModalOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    <div className="card" style={{ maxWidth: '400px', width: '90%', padding: '32px', textAlign: 'center' }}>
+                        <div style={{ backgroundColor: '#fef2f2', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                            <XCircle size={32} style={{ color: '#ef4444' }} />
+                        </div>
+                        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>Withdraw Application?</h2>
+                        <p style={{ color: '#6b7280', marginBottom: '32px' }}>
+                            Are you sure you want to withdraw this application? This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                            <button
+                                onClick={() => {
+                                    setIsWithdrawModalOpen(false);
+                                    setSelectedAppId(null);
+                                }}
+                                className="btn-secondary"
+                                style={{ flex: 1, padding: '12px' }}
+                                disabled={isWithdrawing}
+                            >
+                                No, Keep it
+                            </button>
+                            <button
+                                onClick={handleWithdraw}
+                                className="btn-primary"
+                                style={{ flex: 1, padding: '12px', backgroundColor: '#ef4444', color: 'white', border: 'none' }}
+                                disabled={isWithdrawing}
+                            >
+                                {isWithdrawing ? 'Withdrawing...' : 'Yes, Withdraw'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

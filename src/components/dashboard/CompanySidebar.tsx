@@ -34,7 +34,7 @@ export default function CompanySidebar() {
                 <div className="sidebar-header">
                     <Link href="/dashboard/talent" className="brand">
                         <span className="brand-icon company">HU</span>
-                        HireU <small className="text-xs ml-1 text-gray-400">Corporations</small>
+                        HireU <span style={{ fontSize: '12px', marginLeft: '4px', color: '#9ca3af', fontWeight: '500' }}>Corporations</span>
                     </Link>
                 </div>
 

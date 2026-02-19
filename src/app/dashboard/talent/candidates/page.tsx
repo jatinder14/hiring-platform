@@ -1,108 +1,341 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import {
+    Users,
+    Search,
+    Filter,
+    MoreHorizontal,
+    Mail,
+    Calendar,
+    ChevronRight,
+    Star,
+    ArrowUpRight,
+    UserX
+} from 'lucide-react';
 import Link from 'next/link';
-import { Download, CheckCircle, XCircle, MoreVertical, Briefcase, User, Mail, FileText } from 'lucide-react';
-import { useState } from 'react';
 
-const APPLICATIONS = [
-    { id: 1, name: "John Doe", job: "Senior React Developer", email: "john@example.com", status: "Applied", applied: "1 hour ago", resume: "#" },
-    { id: 2, name: "Jane Smith", job: "Senior React Developer", email: "jane@example.com", status: "Interview", applied: "2 days ago", resume: "#" },
-    { id: 3, name: "Mike Johnson", job: "Product Designer", email: "mike@example.com", status: "Rejected", applied: "3 days ago", resume: "#" },
-    { id: 4, name: "Sarah Lee", job: "Backend Engineer", email: "sarah@example.com", status: "Hired", applied: "1 week ago", resume: "#" },
-];
-
-const STATUS_COLORS: Record<string, string> = {
-    'Applied': 'bg-blue-100 text-blue-700',
-    'Interview': 'bg-purple-100 text-purple-700',
-    'Shortlisted': 'bg-yellow-100 text-yellow-700',
-    'Hired': 'bg-green-100 text-green-700',
-    'Rejected': 'bg-red-100 text-red-700',
+type Candidate = {
+    id: string;
+    name: string;
+    role: string;
+    jobApplied: string;
+    status: string;
+    experience: string;
+    matchScore: number;
+    avatar?: string;
+    appliedAt: string;
 };
 
-export default function CandidatesPage() {
-    const [filter, setFilter] = useState('All');
+export default function CompanyCandidatesPage() {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [candidates, setCandidates] = useState<Candidate[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        const fetchCandidates = async () => {
+            try {
+                setError('');
+                setIsLoading(true);
+                let url = '/api/company/applications?';
+                if (statusFilter) url += `status=${statusFilter}&`;
+                if (fromDate) url += `fromDate=${fromDate}&`;
+                if (toDate) url += `toDate=${toDate}&`;
+
+                const res = await fetch(url, { signal });
+                if (!res.ok) {
+                    // Check if it's a JSON response before parsing
+                    const contentType = res.headers.get("content-type");
+                    let errorMessage = 'Failed to fetch candidates';
+                    if (contentType && contentType.includes("application/json")) {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || errorMessage;
+                    }
+                    throw new Error(errorMessage);
+                }
+                const data = await res.json();
+
+                const mappedCandidates = data.map((app: any) => {
+                    const firstName = app.candidate?.name?.trim();
+                    const candidateName = firstName || 'Anonymous Candidate';
+                    const candidateEmail = app.candidate?.email || '';
+
+                    let experienceText = '';
+                    if (app.currentCTC && app.currentCTC !== '0' && app.currentCTC !== '000') {
+                        experienceText = `${app.currentCurrency || '₹'} ${app.currentCTC}`;
+                        if (!experienceText.includes('p.a.')) experienceText += ' p.a.';
+                    } else if (app.noticePeriod) {
+                        experienceText = `Notice: ${app.noticePeriod}`;
+                    } else {
+                        experienceText = 'Applied';
+                    }
+
+                    return {
+                        id: app.id,
+                        name: candidateName,
+                        role: candidateEmail,
+                        jobApplied: app.job?.title || 'Open Position',
+                        status: app.status || 'APPLIED',
+                        experience: experienceText,
+                        matchScore: 0,
+                        avatar: app.candidate?.profileImageUrl,
+                        appliedAt: app.appliedAt
+                    };
+                });
+
+                setCandidates(mappedCandidates);
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
+                console.error(err);
+                setError(err.message || 'Failed to load candidates');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCandidates();
+
+        return () => controller.abort();
+    }, [statusFilter, fromDate, toDate]);
+
+    const filteredCandidates = candidates.filter(c =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.role.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (isLoading) {
+        return <div className="p-8 text-center">Loading candidates...</div>;
+    }
+
+    if (error) {
+        return <div className="p-8 text-center text-red-500">{error}</div>;
+    }
 
     return (
-        <div className="p-6">
-            <header className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Candidates</h1>
-                    <p className="text-gray-500 mt-1">Review and manage job applications.</p>
+        <div className="dashboard-page-content">
+            {/* Header */}
+            <header className="page-header">
+                <div className="page-header-content">
+                    <h1 className="page-title">Manage Talent</h1>
+                    <p className="page-subtitle">Track and evaluate candidates in your pipeline.</p>
                 </div>
             </header>
 
-            {/* Filter Tabs */}
-            <div className="flex gap-4 mb-6 border-b border-gray-200 pb-2">
-                {['All', 'Applied', 'Interview', 'Hired', 'Rejected'].map((status) => (
+            {/* Controls */}
+            <div className="card" style={{ padding: '16px', marginBottom: '24px' }}>
+                <div className="business-filter-bar">
+                    <div className="search-wrapper">
+                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                        <input
+                            type="text"
+                            placeholder="Search candidates by name, email..."
+                            className="form-input"
+                            style={{ paddingLeft: '40px', width: '100%' }}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
                     <button
-                        key={status}
-                        onClick={() => setFilter(status)}
-                        className={`text-sm font-medium pb-2 border-b-2 transition
-                            ${filter === status ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}
-                        `}
+                        className={`btn-secondary btn-filter-trigger ${showFilters ? 'active' : ''}`}
+                        onClick={() => setShowFilters(!showFilters)}
+                        style={{
+                            display: 'flex',
+                            gap: '8px',
+                            height: '44px',
+                            padding: '0 20px',
+                            alignItems: 'center',
+                            backgroundColor: showFilters ? '#f3f4f6' : 'transparent',
+                            borderColor: showFilters ? '#3b82f6' : '#e5e7eb'
+                        }}
                     >
-                        {status}
+                        <Filter size={18} />
+                        Filters
                     </button>
-                ))}
+                </div>
+
+                {showFilters && (
+                    <div className="filters-expanded" style={{
+                        marginTop: '20px',
+                        paddingTop: '20px',
+                        borderTop: '1px solid #f3f4f6',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '20px'
+                    }}>
+                        <div className="filter-group">
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#4b5563', marginBottom: '8px' }}>Status</label>
+                            <select
+                                className="form-input"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                style={{ width: '100%' }}
+                            >
+                                <option value="">All Applications</option>
+                                <option value="Active">Active</option>
+                                <option value="Withdrawn">Withdrawn</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div className="filter-group">
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#4b5563', marginBottom: '8px' }}>Applied After</label>
+                            <input
+                                type="date"
+                                className="form-input"
+                                value={fromDate}
+                                onChange={(e) => setFromDate(e.target.value)}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                        <div className="filter-group">
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#4b5563', marginBottom: '8px' }}>Applied Before</label>
+                            <input
+                                type="date"
+                                className="form-input"
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                        <div className="filter-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                            <button
+                                onClick={() => {
+                                    setStatusFilter('');
+                                    setFromDate('');
+                                    setToDate('');
+                                }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#3b82f6',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    padding: '10px 0'
+                                }}
+                            >
+                                Reset Filters
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Candidate</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Applying For</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Resume</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {APPLICATIONS.filter(app => filter === 'All' || app.status === filter).map((app) => (
-                            <tr key={app.id} className="hover:bg-gray-50 transition">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-sm">
-                                            {app.name.charAt(0)}
+            {/* Candidates List */}
+            <div className="candidates-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {filteredCandidates.length > 0 ? (
+                    filteredCandidates.map((candidate) => (
+                        <div key={candidate.id} className="hireu-candidate-card">
+                            {/* Left Side: Information */}
+                            <div className="candidate-content-left">
+                                <div className="candidate-avatar-wrapper">
+                                    <div className="candidate-avatar candidate-avatar-v2" style={{
+                                        width: '56px',
+                                        height: '56px',
+                                        borderRadius: '14px',
+                                        backgroundColor: '#eff6ff',
+                                        color: '#3b82f6',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: '700',
+                                        fontSize: '20px',
+                                        overflow: 'hidden',
+                                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.1)'
+                                    }}>
+                                        {candidate.avatar ? (
+                                            <img src={candidate.avatar} alt={candidate.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            candidate.name.charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="candidate-main-info">
+                                    <div className="candidate-name-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                        <h3 style={{ margin: 0 }}>{candidate.name}</h3>
+                                        <span
+                                            className={`status-badge ${['INTERVIEW', 'SHORTLISTED', 'APPLIED'].includes(candidate.status) ? 'active' :
+                                                candidate.status === 'WITHDRAWN' ? 'withdrawn' : 'inactive'
+                                                }`}
+                                            style={{
+                                                fontSize: '10px',
+                                                padding: '4px 10px',
+                                                borderRadius: '99px',
+                                                fontWeight: '700',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                height: 'fit-content'
+                                            }}
+                                        >
+                                            {candidate.status === 'APPLIED' ? 'ACTIVE' :
+                                                candidate.status === 'SHORTLISTED' ? 'SHORTLISTED' :
+                                                    candidate.status === 'INTERVIEW' ? 'INTERVIEW' : candidate.status}
+                                        </span>
+                                    </div>
+                                    <span className="candidate-email-text">{candidate.role}</span>
+
+                                    <div className="candidate-meta-flex">
+                                        <div className="meta-pill">
+                                            <span style={{ color: '#10b981', fontWeight: '700' }}>{candidate.experience}</span>
                                         </div>
-                                        <div>
-                                            <p className="font-semibold text-gray-900">{app.name}</p>
-                                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                                                <Mail size={12} /> {app.email}
+                                        <div className="meta-pill">
+                                            <span style={{ color: '#64748b' }}>Applied for:</span>
+                                            <span style={{ color: '#3b82f6', fontWeight: '600' }}>{candidate.jobApplied}</span>
+                                        </div>
+                                        {candidate.matchScore > 0 && (
+                                            <div className="meta-pill" style={{ background: '#fffbeb', borderColor: '#fef3c7' }}>
+                                                <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                                                <span style={{ color: '#d97706', fontWeight: '700' }}>{candidate.matchScore}% Match</span>
                                             </div>
+                                        )}
+                                        <div className="meta-pill">
+                                            <span style={{ color: '#94a3b8' }}>Applied On:</span>
+                                            <span style={{ color: '#475569', fontWeight: '500' }}>
+                                                {new Date(candidate.appliedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
                                         </div>
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm">
-                                        <p className="font-medium text-gray-900">{app.job}</p>
-                                        <p className="text-gray-500 text-xs">Applied {app.applied}</p>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[app.status] || 'bg-gray-100 text-gray-700'}`}>
-                                        {app.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <a href={app.resume} className="flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium">
-                                        <Download size={16} /> Resume
-                                    </a>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition" title="Accept/Interview">
-                                            <CheckCircle size={18} />
+                                </div>
+                            </div>
+
+                            {/* Right Side: Status & Actions */}
+                            <div className="candidate-actions-right">
+
+
+                                <div className="action-tools">
+                                    <div className="icon-row">
+                                        <button className="tool-btn" title="Send Email">
+                                            <Mail size={18} />
                                         </button>
-                                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Reject">
-                                            <XCircle size={18} />
+                                        <button className="tool-btn" title="Schedule Interview">
+                                            <Calendar size={18} />
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                    <Link href={`/dashboard/company/candidates/${candidate.id}`} className="profile-link-btn">
+                                        View Profile <ArrowUpRight size={18} />
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+                        <UserX size={48} strokeWidth={1.5} style={{ margin: '0 auto', color: '#9ca3af', marginBottom: '16px' }} />
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>No candidates found</h3>
+                        <p style={{ color: '#6b7280' }}>Candidates who apply to your jobs will appear here.</p>
+                    </div>
+                )}
             </div>
         </div>
     );
