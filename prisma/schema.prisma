@@ -14,8 +14,9 @@ datasource db {
 }
 
 enum UserRole {
-  CLIENT
+  RECRUITER
   CANDIDATE
+  CLIENT
 }
 
 model User {
@@ -49,14 +50,34 @@ enum ApplicationStatus {
   HIRED
 }
 
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+enum JobCategory {
+  ENGINEERING
+  DESIGN
+  MARKETING
+  PRODUCT
+  QA
+  SALES
+  HR
+  FINANCE
+  OTHER
+}
+
 model Job {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
   title           String
   company         String
   location        String
   description     String
-  employmentType  String        // e.g., FULL_TIME, REMOTE
-  category        String
+  employmentType  EmploymentType // e.g., FULL_TIME
+  category        JobCategory
   skills          String[]
   salary          String?       // e.g. "150,000"
   currency        String?       // e.g. "USD"

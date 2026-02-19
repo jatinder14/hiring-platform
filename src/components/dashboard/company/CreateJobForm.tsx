@@ -16,6 +16,7 @@ type JobData = {
     skills: string[];
     description: string;
     experience: string;
+    category: string;
     requirements: string;
 };
 
@@ -32,7 +33,7 @@ export default function CreateJobForm() {
     // Form State
     const [formData, setFormData] = useState<JobData>({
         title: '',
-        employmentType: 'Full-time',
+        employmentType: 'FULL_TIME',
         location: '',
         salaryMin: '',
         salaryMax: '',
@@ -41,6 +42,7 @@ export default function CreateJobForm() {
         skills: [],
         description: '',
         experience: '0-2 years',
+        category: 'ENGINEERING',
         requirements: '',
     });
 
@@ -162,11 +164,32 @@ export default function CreateJobForm() {
                                     onChange={handleInputChange}
                                     className="form-input"
                                 >
-                                    <option>Full-time</option>
-                                    <option>Part-time</option>
-                                    <option>Contract</option>
-                                    <option>Internship</option>
-                                    <option>Freelance</option>
+                                    <option value="FULL_TIME">Full-time</option>
+                                    <option value="PART_TIME">Part-time</option>
+                                    <option value="CONTRACT">Contract</option>
+                                    <option value="INTERNSHIP">Internship</option>
+                                    <option value="FREELANCE">Freelance</option>
+                                </select>
+                            </div>
+
+                            {/* Category */}
+                            <div className="form-group">
+                                <label className="form-label">Job Category</label>
+                                <select
+                                    name="category"
+                                    value={formData.category}
+                                    onChange={handleInputChange}
+                                    className="form-input"
+                                >
+                                    <option value="ENGINEERING">Engineering</option>
+                                    <option value="DESIGN">Design</option>
+                                    <option value="MARKETING">Marketing</option>
+                                    <option value="PRODUCT">Product</option>
+                                    <option value="QA">Quality Assurance</option>
+                                    <option value="SALES">Sales</option>
+                                    <option value="HR">Human Resources</option>
+                                    <option value="FINANCE">Finance</option>
+                                    <option value="OTHER">Other</option>
                                 </select>
                             </div>
 
