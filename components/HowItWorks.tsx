@@ -16,6 +16,7 @@ const STEPS: Step[] = [
 
 export function HowItWorks() {
   const [active, setActive] = useState(0);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const markerRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function HowItWorks() {
   const current = STEPS[active] ?? STEPS[0];
 
   return (
-    <section className="hiw-section" id="how-it-works">
+    <section ref={sectionRef} className="hiw-section" id="how-it-works">
       <div className="hiw-grid">
         <aside className="hiw-left">
           <h2>How it works</h2>

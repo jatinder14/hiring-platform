@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion } from "framer-motion";
 import { AuroraCanvas } from "@/components/AuroraCanvas";
 import { TreeLayer } from "@/components/TreeLayer";
 import { FlowController } from "@/components/FlowController";
 import { HeroNav } from "@/components/HeroNav";
 import { HowItWorks } from "@/components/HowItWorks";
+import { PathwayTop } from "@/components/PathwayTop";
 import { FileUser, PhoneCall, Flag } from "lucide-react";
 
 const HireU = dynamic(() => import("@/components/HireU").then((m) => ({ default: m.HireU })), { ssr: true });
@@ -66,7 +68,7 @@ export function HomeClient() {
           if (!Number.isNaN(idx)) setCompanyMsgIdx(idx);
         });
       },
-      { root: null, threshold: 0.15, rootMargin: "-47% 0px -47% 0px" }
+      { root: null, threshold: 0.01, rootMargin: "-47% 0px -47% 0px" }
     );
     refs.forEach((el) => io.observe(el));
     return () => io.disconnect();
@@ -84,21 +86,8 @@ export function HomeClient() {
       <main id="main-content" role="main">
         <HeroNav />
 
-        <section className="hero" id="hero" ref={heroRef}>
-          <div className="hero-smoke" />
-          <div className="hero-content">
-            <div className="hero-3d-visual" aria-label="3D style winner holding trophy">
-              <img
-                className="hero-3d-image"
-                src="/hired-hero-illustration.svg"
-                alt="Professional business meeting collaboration illustration"
-                loading="eager"
-              />
-            </div>
-            <a className="hero-hire-btn" href="/job-seeker/register">
-              Get a job
-            </a>
-          </div>
+        <section id="hero" ref={heroRef}>
+          <PathwayTop />
         </section>
 
         <section className="story" id="story" ref={storyRef}>
@@ -263,9 +252,18 @@ export function HomeClient() {
           <div className="company-story-sticky">
             <div className={`company-message-shell msg-step-${companyMsgIdx}`}>
               <div className="company-message-text" aria-live="polite">
-                <p key={companyMsgIdx} className="company-message-line">
-                  {COMPANY_MESSAGES[companyMsgIdx]}
-                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={companyMsgIdx}
+                    className="company-message-line"
+                    initial={{ opacity: 0, y: 14, filter: "blur(2px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -14, filter: "blur(1.6px)" }}
+                    transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {COMPANY_MESSAGES[companyMsgIdx]}
+                  </motion.p>
+                </AnimatePresence>
               </div>
               <div className="company-message-bottom-line" aria-hidden="true" />
             </div>
