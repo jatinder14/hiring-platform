@@ -8,7 +8,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import RichTextEditor from '@/components/dashboard/RichTextEditor';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(
+    () => import('@/components/dashboard/RichTextEditor'),
+    {
+        loading: () => <div className="h-40 w-full bg-gray-50 border rounded-lg flex items-center justify-center text-gray-400">Loading editor...</div>,
+        ssr: false
+    }
+);
 
 type Job = {
     id: string;
@@ -84,29 +92,34 @@ export default function ApplyPage() {
 
             const jobId = Array.isArray(params.id) ? params.id[0] : params.id;
 
+            // Check session storage first
+            const cachedJob = sessionStorage.getItem(`job_${jobId}`);
+            if (cachedJob) {
+                try {
+                    const data = JSON.parse(cachedJob);
+                    setJob(data);
+                    if (data.currency) {
+                        setFormData(prev => ({
+                            ...prev,
+                            currentCurrency: data.currency,
+                            expectedCurrency: data.currency
+                        }));
+                    }
+                    setIsFetching(false);
+                    // Fetch in background to update if stale
+                } catch (e) {
+                    sessionStorage.removeItem(`job_${jobId}`);
+                }
+            }
+
             try {
-                // In a real scenario, you might have a dedicated endpoint for single job details
-                // If /api/jobs returns a list, we might need to filter or fetch a specific one
-                // Given previous context, let's assume we can fetch specific job or we fetch list and find.
-                // Ideally: fetch(`/api/jobs/${jobId}`)
-
-                // Let's rely on the public jobs API. If it doesn't support ID, we might need to update it. 
-                // However, usually REST APIs support /api/jobs/:id.
-                // Let's try to fetch all and find, OR if we made a specific endpoint. 
-                // Looking at previous interactions, we haven't explicitly seen /api/jobs/[id] GET for public.
-                // But typically it should be there. Let's try to fetch it.
-                // If it fails, we will fallback to fetching all and filtering (backup plan).
-
-                // Let's try fetching the specific job directly if the endpoint exists, 
-                // otherwise we might need to use the 'GET /api/jobs' and filter.
-                // Safest bet without checking backend code right now: Try specific known pattern first.
-
                 const res = await fetch(`/api/jobs/${jobId}`, { cache: 'no-store' });
 
                 if (res.ok) {
                     const data = await res.json();
                     if (data) {
                         setJob(data);
+                        sessionStorage.setItem(`job_${jobId}`, JSON.stringify(data));
                         // Pre-select currency from job
                         if (data.currency) {
                             setFormData(prev => ({
@@ -119,15 +132,14 @@ export default function ApplyPage() {
                         setFetchError('Job not found');
                     }
                 } else {
-                    // Fallback: This might occur if the specific ID route isn't implemented for GET public
-                    // Let's try fetching all active jobs and filtering (not efficient but works for MVP)
+                    // Fallback
                     const resAll = await fetch('/api/jobs');
                     if (resAll.ok) {
                         const allJobs: Job[] = await resAll.json();
                         const foundJob = allJobs.find(j => j.id === jobId);
                         if (foundJob) {
                             setJob(foundJob);
-                            // Pre-select currency from job
+                            sessionStorage.setItem(`job_${jobId}`, JSON.stringify(foundJob));
                             if (foundJob.currency) {
                                 setFormData(prev => ({
                                     ...prev,
@@ -144,7 +156,7 @@ export default function ApplyPage() {
                 }
             } catch (err) {
                 console.error("Error fetching job:", err);
-                setFetchError('Failed to load job details. Please try again.');
+                if (!job) setFetchError('Failed to load job details. Please try again.');
             } finally {
                 setIsFetching(false);
             }
@@ -232,14 +244,12 @@ export default function ApplyPage() {
             });
 
             if (response.ok) {
-                // Update local storage for demo purposes (Applied state on Jobs list)
                 const applied = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
                 if (!applied.includes(jobId)) {
                     applied.push(jobId);
                     localStorage.setItem('applied_jobs', JSON.stringify(applied));
                 }
 
-                // Also update the detailed applications list for the demo
                 const fullApps = JSON.parse(localStorage.getItem('user_applications') || '[]');
                 const newApp = {
                     id: Math.random().toString(36).substr(2, 9),

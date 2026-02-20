@@ -108,15 +108,29 @@ export default function ApplicationsPage() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const fetchApplications = async () => {
-        setLoading(true);
-        setError('');
+        // Optimistic cache load
+        let hasCache = false;
+        try {
+            const cachedApps = sessionStorage.getItem('cached_user_applications');
+            if (cachedApps) {
+                setApplications(JSON.parse(cachedApps));
+                hasCache = true;
+                setLoading(false);
+            }
+        } catch (e) { console.error(e); }
+
+        if (!hasCache) setLoading(true);
+
+        // Don't clear error if we have cache, to avoid flashing error state if background fetch fails
+        if (!hasCache) setError('');
+
         try {
             const res = await fetch('/api/applications', { cache: 'no-store' });
 
             if (!res.ok) {
-                // Return empty list on 401/404 to trigger Empty State as requested
                 if (res.status === 401 || res.status === 404) {
                     setApplications([]);
+                    sessionStorage.setItem('cached_user_applications', JSON.stringify([]));
                     return;
                 }
                 throw new Error('Failed to load applications');
@@ -140,9 +154,13 @@ export default function ApplicationsPage() {
             }));
 
             setApplications(mappedApps);
+            sessionStorage.setItem('cached_user_applications', JSON.stringify(mappedApps));
+
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to load applications');
+            if (!hasCache) {
+                setError(err.message || 'Failed to load applications');
+            }
         } finally {
             setLoading(false);
         }
@@ -163,9 +181,12 @@ export default function ApplicationsPage() {
             });
 
             if (res.ok) {
-                setApplications(prev => prev.map(app =>
-                    app.id === selectedAppId ? { ...app, status: 'WITHDRAWN' } : app
-                ));
+                const updatedApps = applications.map(app =>
+                    app.id === selectedAppId ? { ...app, status: 'WITHDRAWN' as ApplicationStatus } : app
+                );
+                setApplications(updatedApps);
+                sessionStorage.setItem('cached_user_applications', JSON.stringify(updatedApps)); // Update cache
+
                 setIsWithdrawModalOpen(false);
                 toast.success('Application withdrawn successfully');
             } else {

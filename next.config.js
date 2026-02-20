@@ -2,8 +2,16 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  compress: true,
+  poweredByHeader: false,
   experimental: {
-    optimizePackageImports: ['country-state-city', 'lucide-react'],
+    optimizePackageImports: [
+      'country-state-city',
+      'lucide-react',
+      '@editorjs/editorjs',
+      'date-fns',
+      'sonner'
+    ],
   },
   async redirects() {
     return [

@@ -18,6 +18,7 @@ type Job = {
     experienceMin?: number | null;
     experienceMax?: number | null;
     createdAt: string;
+    category?: string; // Opt
 };
 
 type Application = {
@@ -60,12 +61,34 @@ export default function JobsPage() {
     });
 
     const fetchData = async () => {
-        setLoading(true);
+        // Optimistic check: if we have data in cache, load it immediately
+        let hasCache = false;
+        try {
+            const cachedJobs = sessionStorage.getItem('cached_jobs_list');
+            const cachedApps = sessionStorage.getItem('cached_apps_ids');
+
+            if (cachedJobs) {
+                setJobs(JSON.parse(cachedJobs));
+                hasCache = true;
+            }
+            if (cachedApps) {
+                setAppliedJobIds(new Set(JSON.parse(cachedApps)));
+            }
+            if (hasCache) {
+                setLoading(false); // Show cached content immediately
+            }
+        } catch (e) {
+            console.error("Cache read error", e);
+        }
+
+        // Only show loading if we don't have cache
+        if (!hasCache) setLoading(true);
+
         setError('');
         try {
             const [jobsRes, appsRes] = await Promise.all([
-                fetch('/api/jobs'),
-                fetch('/api/applications')
+                fetch('/api/jobs', { cache: 'no-store' }), // Always fetch fresh to update cache
+                fetch('/api/applications', { cache: 'no-store' })
             ]);
 
             if (!jobsRes.ok) {
@@ -74,15 +97,27 @@ export default function JobsPage() {
             }
 
             const jobsData = await jobsRes.json();
+
+            // Basic deduplication or comparison could go here if needed to avoid re-renders
+            // But React handles state updates efficiently if identical refs/values mostly
             setJobs(jobsData);
+            sessionStorage.setItem('cached_jobs_list', JSON.stringify(jobsData));
 
             if (appsRes.ok) {
                 const appsData: Application[] = await appsRes.json();
-                setAppliedJobIds(new Set(appsData.map(app => app.jobId)));
+                const appIds = appsData.map(app => app.jobId);
+                setAppliedJobIds(new Set(appIds));
+                sessionStorage.setItem('cached_apps_ids', JSON.stringify(appIds));
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to load jobs. Please try again later.';
-            setError(message);
+            // Only show error if we have NO data. If we have cached data, just log error silently (stale-while-revalidate pattern)
+            if (!hasCache) {
+                setError(message);
+            } else {
+                console.warn("Background fetch failed, using cached data:", message);
+                toast.error("Could not refresh latest jobs");
+            }
         } finally {
             setLoading(false);
         }
@@ -120,7 +155,7 @@ export default function JobsPage() {
         }
 
         // Skill Filter (Simple text match)
-        if (filters.skills && !job.skills.some(skill => skill.toLowerCase().includes(filters.skills.toLowerCase()))) return false;
+        if (filters.skills && job.skills && !job.skills.some(skill => skill.toLowerCase().includes(filters.skills.toLowerCase()))) return false;
 
         return true;
     });
@@ -129,7 +164,7 @@ export default function JobsPage() {
         toast.success("Job alerts set! We'll notify you when new roles match your profile.");
     };
 
-    if (error) {
+    if (error && jobs.length === 0) {
         return (
             <div className="p-12 text-center">
                 <div style={{ backgroundColor: '#fee2e2', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
