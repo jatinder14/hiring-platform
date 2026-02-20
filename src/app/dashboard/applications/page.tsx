@@ -2,70 +2,147 @@
 
 import { useState, useEffect } from 'react';
 import {
-    Briefcase, Calendar, ChevronRight, Filter,
-    MoreVertical, CheckCircle, Clock, XCircle, UserCheck
+    Briefcase, Calendar, Filter, MoreVertical,
+    CheckCircle, Clock, XCircle, UserCheck,
+    AlertCircle, RefreshCw, Layers, MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
-const getStatusBadge = (status: string) => {
-    const badgeStyle = {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        whiteSpace: 'nowrap' as const
-    };
+// --- Type Definitions ---
+type ApplicationStatus = 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'REJECTED' | 'HIRED' | 'WITHDRAWN';
 
-    // Normalize for consistent checking if needed, or just handle cases.
-    switch (status?.toUpperCase()) {
-        case 'APPLIED':
-            return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#eff6ff', color: '#3b82f6' }}><Clock size={14} style={{ flexShrink: 0 }} /> <span>Applied</span></span>;
-        case 'SHORTLISTED':
-            return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#ecfdf5', color: '#10b981' }}><UserCheck size={14} style={{ flexShrink: 0 }} /> <span>Shortlisted</span></span>;
-        case 'INTERVIEW':
-            return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#fff7ed', color: '#f97316' }}><Clock size={14} style={{ flexShrink: 0 }} /> <span>Interview</span></span>;
-        case 'REJECTED':
-            return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#fef2f2', color: '#ef4444' }}><XCircle size={14} style={{ flexShrink: 0 }} /> <span>Rejected</span></span>;
-        case 'HIRED':
-            return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#ecfdf5', color: '#10b981' }}><CheckCircle size={14} style={{ flexShrink: 0 }} /> <span>Hired</span></span>;
-        case 'WITHDRAWN':
-            return <span className="tag" style={{ ...badgeStyle, backgroundColor: '#f3f4f6', color: '#6b7280' }}><XCircle size={14} style={{ flexShrink: 0 }} /> <span>Withdrawn</span></span>;
-        default:
-            return <span className="tag" style={badgeStyle}>{status}</span>;
-    }
+type Application = {
+    id: string;
+    jobTitle: string;
+    company: string;
+    appliedDate: string;
+    status: ApplicationStatus;
+    experienceMin?: number | null;
+    experienceMax?: number | null;
+    location?: string;
+    salary?: string;
+    currency?: string;
+    logo?: string;
 };
 
+// --- Helper Components ---
+
+const StatusBadge = ({ status }: { status: string }) => {
+    const s = status?.toUpperCase();
+
+    // Define styles map for safety against missing Tailwind
+    const variants: Record<string, { bg: string, color: string, icon: any, label: string }> = {
+        'APPLIED': { bg: '#eff6ff', color: '#3b82f6', icon: Clock, label: 'Applied' },
+        'SHORTLISTED': { bg: '#ecfdf5', color: '#059669', icon: UserCheck, label: 'Shortlisted' },
+        'INTERVIEW': { bg: '#fff7ed', color: '#ea580c', icon: Calendar, label: 'Interview' },
+        'REJECTED': { bg: '#fef2f2', color: '#dc2626', icon: XCircle, label: 'Rejected' },
+        'HIRED': { bg: '#ecfdf5', color: '#16a34a', icon: CheckCircle, label: 'Hired' },
+        'WITHDRAWN': { bg: '#f3f4f6', color: '#6b7280', icon: XCircle, label: 'Withdrawn' },
+    };
+
+    const variant = variants[s] || { bg: '#f3f4f6', color: '#374151', icon: Briefcase, label: status };
+    const Icon = variant.icon;
+
+    return (
+        <span
+            className="tag"
+            style={{
+                backgroundColor: variant.bg,
+                color: variant.color,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '99px',
+                fontSize: '12px',
+                fontWeight: 600
+            }}
+        >
+            <Icon size={14} style={{ flexShrink: 0 }} />
+            {variant.label}
+        </span>
+    );
+};
+
+const LoadingSkeleton = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {[1, 2, 3].map((i) => (
+            <div key={i} className="job-card" style={{ opacity: 0.6 }}>
+                <div style={{ width: '48px', height: '48px', background: '#e5e7eb', borderRadius: '12px' }}></div>
+                <div style={{ flex: 1 }}>
+                    <div style={{ height: '20px', width: '30%', background: '#e5e7eb', marginBottom: '8px', borderRadius: '4px' }}></div>
+                    <div style={{ height: '16px', width: '20%', background: '#e5e7eb', borderRadius: '4px' }}></div>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+const EmptyState = () => (
+    <div className="card" style={{ textAlign: 'center', padding: '64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{
+            width: '64px', height: '64px', backgroundColor: '#eff6ff', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
+        }}>
+            <Layers className="text-primary" size={32} style={{ color: '#3b82f6' }} />
+        </div>
+        <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>Apply to View Applications</h3>
+        <p style={{ color: '#6b7280', maxWidth: '400px', margin: '0 auto 24px', lineHeight: '1.5' }}>
+            You haven't applied to any jobs yet. Browse available jobs and start applying to track your progress here.
+        </p>
+        <Link href="/dashboard/jobs" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <Briefcase size={18} />
+            Browse Jobs
+        </Link>
+    </div>
+);
+
 export default function ApplicationsPage() {
-    const [applications, setApplications] = useState<any[]>([]);
+    const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
     const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
     const [isWithdrawing, setIsWithdrawing] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const fetchApplications = async () => {
+        setLoading(true);
+        setError('');
         try {
             const res = await fetch('/api/applications', { cache: 'no-store' });
-            if (!res.ok) throw new Error('Failed to fetch applications');
+
+            if (!res.ok) {
+                // Return empty list on 401/404 to trigger Empty State as requested
+                if (res.status === 401 || res.status === 404) {
+                    setApplications([]);
+                    return;
+                }
+                throw new Error('Failed to load applications');
+            }
 
             const data = await res.json();
 
-            type AppItem = { id: string; job: { title: string; company: string; experienceMin?: number | null; experienceMax?: number | null }; appliedAt: string; status: string };
-            const mappedApps = data.map((app: AppItem) => ({
+            // Transform data to match UI needs
+            const mappedApps: Application[] = data.map((app: any) => ({
                 id: app.id,
-                jobTitle: app.job.title,
-                company: app.job.company,
-                appliedDate: app.appliedAt,
+                jobTitle: app.job?.title || 'Unknown Role',
+                company: app.job?.company || 'Unknown Company',
+                appliedDate: app.appliedAt || app.appliedDate,
                 status: app.status,
-                experienceMin: app.job.experienceMin,
-                experienceMax: app.job.experienceMax,
-                logo: app.job.company.substring(0, 2).toUpperCase()
+                experienceMin: app.job?.experienceMin,
+                experienceMax: app.job?.experienceMax,
+                location: app.job?.location,
+                salary: app.job?.salary,
+                currency: app.job?.currency,
+                logo: (app.job?.company || 'C').substring(0, 2).toUpperCase()
             }));
 
             setApplications(mappedApps);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError('Failed to load applications');
+            setError(err.message || 'Failed to load applications');
         } finally {
             setLoading(false);
         }
@@ -73,7 +150,7 @@ export default function ApplicationsPage() {
 
     useEffect(() => {
         fetchApplications();
-    }, []);
+    }, [refreshTrigger]);
 
     const handleWithdraw = async () => {
         if (!selectedAppId) return;
@@ -86,7 +163,6 @@ export default function ApplicationsPage() {
             });
 
             if (res.ok) {
-                // Update local state instantly
                 setApplications(prev => prev.map(app =>
                     app.id === selectedAppId ? { ...app, status: 'WITHDRAWN' } : app
                 ));
@@ -99,90 +175,135 @@ export default function ApplicationsPage() {
             console.error(err);
             toast.error('Error withdrawing application');
         } finally {
+            setIsWithdrawModalOpen(false); // Close modal first
             setIsWithdrawing(false);
             setSelectedAppId(null);
         }
     };
 
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '64px' }}>
-                <div className="animate-spin text-blue-500">Loading...</div>
-            </div>
-        );
-    }
+    return (
+        <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '40px' }}>
 
-    if (error) {
-        return (
-            <div className="p-8 text-center text-red-500">
-                <p>{error}</p>
+            {/* Page Header */}
+            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h1 className="page-title">My Applications</h1>
+                    <p className="page-subtitle">Track and manage your job applications.</p>
+                </div>
                 <button
-                    type="button"
-                    onClick={() => window.location.reload()}
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    onClick={() => setRefreshTrigger(p => p + 1)}
+                    className="btn-secondary"
+                    style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Refresh List"
                 >
-                    Retry
+                    <RefreshCw size={18} />
                 </button>
             </div>
-        );
-    }
 
-    return (
-        <div>
-            <div className="page-header">
-                <h1 className="page-title">My Applications</h1>
-                <p className="page-subtitle">Track the status of your submitted job applications.</p>
-            </div>
-
-            {applications.length > 0 ? (
-                <div className="applications-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Content Area */}
+            {loading ? (
+                <LoadingSkeleton />
+            ) : error ? (
+                <div className="card" style={{
+                    padding: '32px', textAlign: 'center', border: '1px solid #fee2e2', backgroundColor: '#fef2f2'
+                }}>
+                    <div style={{
+                        width: '48px', height: '48px', backgroundColor: '#fee2e2', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+                    }}>
+                        <AlertCircle className="text-danger" size={24} style={{ color: '#dc2626' }} />
+                    </div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#991b1b', marginBottom: '8px' }}>Unable to Load Applications</h3>
+                    <p style={{ color: '#b91c1c', marginBottom: '24px' }}>{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="btn-primary"
+                        style={{ backgroundColor: '#dc2626', border: 'none' }}
+                    >
+                        <RefreshCw size={18} style={{ marginRight: '8px' }} />
+                        Reload Page
+                    </button>
+                </div>
+            ) : applications.length > 0 ? (
+                <div className="applications-list">
                     {applications.map((app) => (
-                        <div key={app.id} className="job-card" style={{ padding: '20px' }}>
-                            <div className="application-card-content">
-                                <div className="application-info">
-                                    <div style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: '10px',
-                                        backgroundColor: '#eff6ff',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '18px',
-                                        fontWeight: '700',
-                                        color: '#3b82f6',
-                                        flexShrink: 0
-                                    }}>
-                                        {app.company?.charAt(0) || 'C'}
-                                    </div>
-                                    <div>
-                                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.jobTitle}</h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px', flexWrap: 'wrap' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.company}</span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}</span>
-                                            {(app.experienceMin != null || app.experienceMax != null) && (
-                                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                                    {app.experienceMin ?? '?'}-{app.experienceMax ?? '?'} Yrs Exp Required
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
+                        <div key={app.id} className="job-card" style={{ gap: '20px', alignItems: 'flex-start' }}>
+                            {/* Company Logo Placeholder */}
+                            <div style={{
+                                width: '56px',
+                                height: '56px',
+                                borderRadius: '14px',
+                                background: 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
+                                color: '#3b82f6',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '20px',
+                                fontWeight: '700',
+                                border: '1px solid #dbeafe',
+                                flexShrink: 0,
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            }}>
+                                {app.logo}
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: 0, cursor: 'pointer' }}>
+                                        {app.jobTitle}
+                                    </h3>
+                                    <StatusBadge status={app.status} />
                                 </div>
 
-                                <div className="application-actions">
-                                    {getStatusBadge(app.status)}
-                                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                        <button type="button" className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>View Details</button>
-                                        {app.status !== 'WITHDRAWN' && app.status !== 'REJECTED' && app.status !== 'HIRED' && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500', color: '#374151' }}>
+                                        <Briefcase size={15} style={{ color: '#9ca3af' }} />
+                                        {app.company}
+                                    </span>
+                                    {app.location && (
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <MapPin size={15} style={{ color: '#9ca3af' }} />
+                                            {app.location}
+                                        </span>
+                                    )}
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Calendar size={15} style={{ color: '#9ca3af' }} />
+                                        Applied {new Date(app.appliedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
+                                </div>
+
+                                {/* Footer Info */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
+                                    <div>
+                                        {(app.experienceMin != null || app.experienceMax != null) && (
+                                            <span style={{
+                                                display: 'inline-flex', alignItems: 'center', padding: '4px 10px',
+                                                borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                                                backgroundColor: '#f3f4f6', color: '#374151'
+                                            }}>
+                                                Exp: {app.experienceMin ?? 0}-{app.experienceMax ?? '?'} Yrs
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                        <button
+                                            className="btn-secondary"
+                                            style={{ border: 'none', background: 'transparent', padding: 0, color: '#4b5563', fontSize: '14px' }}
+                                        >
+                                            View Details
+                                        </button>
+                                        {['APPLIED', 'SHORTLISTED', 'INTERVIEW'].includes(app.status) && (
                                             <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
+                                                onClick={() => {
                                                     setSelectedAppId(app.id);
                                                     setIsWithdrawModalOpen(true);
                                                 }}
-                                                className="btn-secondary"
-                                                style={{ padding: '8px 16px', fontSize: '13px', color: '#dc2626', borderColor: '#fecaca' }}
+                                                style={{
+                                                    border: 'none', background: 'transparent', padding: '0 0 0 16px',
+                                                    color: '#ef4444', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                                                    borderLeft: '1px solid #e5e7eb'
+                                                }}
                                             >
                                                 Withdraw
                                             </button>
@@ -194,64 +315,45 @@ export default function ApplicationsPage() {
                     ))}
                 </div>
             ) : (
-                <div className="card text-center py-16" style={{ padding: '64px', textAlign: 'center' }}>
-                    <div style={{ backgroundColor: '#f3f4f6', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                        <Briefcase size={32} style={{ color: '#9ca3af' }} />
-                    </div>
-                    <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px' }}>No Applications Yet</h2>
-                    <p style={{ color: '#6b7280', marginBottom: '32px', maxWidth: '400px', margin: '0 auto 32px' }}>
-                        You haven't applied to any jobs yet. Start exploring opportunities that match your skills!
-                    </p>
-                    <Link href="/dashboard/jobs" className="btn-primary">
-                        Browse Available Jobs
-                    </Link>
-                </div>
+                <EmptyState />
             )}
 
-            {/* Withdraw Confirmation Modal */}
+            {/* Withdraw Modal */}
             {isWithdrawModalOpen && (
                 <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(4px)'
+                    position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)'
                 }}>
-                    <div className="card" style={{ maxWidth: '400px', width: '90%', padding: '32px', textAlign: 'center' }}>
-                        <div style={{ backgroundColor: '#fef2f2', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                            <XCircle size={32} style={{ color: '#ef4444' }} />
+                    <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '32px', textAlign: 'center', margin: '20px' }}>
+                        <div style={{
+                            width: '48px', height: '48px', backgroundColor: '#fee2e2', borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+                        }}>
+                            <AlertCircle size={24} style={{ color: '#dc2626' }} />
                         </div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>Withdraw Application?</h2>
-                        <p style={{ color: '#6b7280', marginBottom: '32px' }}>
-                            Are you sure you want to withdraw this application? This action cannot be undone.
+                        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px', color: '#111827' }}>Withdraw Application?</h2>
+                        <p style={{ color: '#6b7280', marginBottom: '24px', fontSize: '14px' }}>
+                            Are you sure you want to withdraw? This action cannot be undone.
                         </p>
-                        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', gap: '12px' }}>
                             <button
-                                type="button"
                                 onClick={() => {
                                     setIsWithdrawModalOpen(false);
                                     setSelectedAppId(null);
                                 }}
                                 className="btn-secondary"
-                                style={{ flex: 1, padding: '12px' }}
+                                style={{ flex: 1 }}
                                 disabled={isWithdrawing}
                             >
-                                No, Keep it
+                                Cancel
                             </button>
                             <button
-                                type="button"
                                 onClick={handleWithdraw}
                                 className="btn-primary"
-                                style={{ flex: 1, padding: '12px', backgroundColor: '#ef4444', color: 'white', border: 'none' }}
+                                style={{ flex: 1, backgroundColor: '#dc2626', border: 'none' }}
                                 disabled={isWithdrawing}
                             >
-                                {isWithdrawing ? 'Withdrawing...' : 'Yes, Withdraw'}
+                                {isWithdrawing ? 'Withdrawing...' : 'Withdraw'}
                             </button>
                         </div>
                     </div>

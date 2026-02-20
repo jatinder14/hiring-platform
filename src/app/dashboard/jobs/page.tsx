@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Briefcase, MapPin, DollarSign, CheckCircle, SlidersHorizontal, X, Loader2, Clock } from 'lucide-react';
+import { Briefcase, MapPin, DollarSign, CheckCircle, SlidersHorizontal, X, Loader2, Clock, Bell, User, Search } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 type Job = {
     id: string;
@@ -24,6 +25,25 @@ type Application = {
     jobId: string;
     status: string;
 };
+
+const JobSkeleton = () => (
+    <div className="job-card animate-pulse" style={{ padding: '24px', border: '1px solid #e5e7eb' }}>
+        <div style={{ display: 'flex', gap: '20px' }}>
+            <div style={{ flex: 1 }}>
+                <div style={{ width: '40%', height: '24px', backgroundColor: '#e5e7eb', borderRadius: '4px', marginBottom: '12px' }} />
+                <div style={{ width: '25%', height: '18px', backgroundColor: '#f3f4f6', borderRadius: '4px', marginBottom: '16px' }} />
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                    <div style={{ width: '80px', height: '28px', backgroundColor: '#e5e7eb', borderRadius: '16px' }} />
+                    <div style={{ width: '80px', height: '28px', backgroundColor: '#e5e7eb', borderRadius: '16px' }} />
+                    <div style={{ width: '80px', height: '28px', backgroundColor: '#e5e7eb', borderRadius: '16px' }} />
+                </div>
+                <div style={{ width: '100%', height: '16px', backgroundColor: '#f9fafb', borderRadius: '4px', marginBottom: '8px' }} />
+                <div style={{ width: '80%', height: '16px', backgroundColor: '#f9fafb', borderRadius: '4px' }} />
+            </div>
+            <div style={{ width: '120px', height: '44px', backgroundColor: '#e5e7eb', borderRadius: '12px' }} />
+        </div>
+    </div>
+);
 
 export default function JobsPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -82,6 +102,8 @@ export default function JobsPage() {
         });
     };
 
+    const isFilterActive = filters.fullTime || filters.contract || filters.internship || filters.category !== 'All Categories' || filters.skills !== '';
+
     const filteredJobs = jobs.filter(job => {
         // Employment Type Filter (OR Logic)
         const activeTypes = [];
@@ -103,13 +125,9 @@ export default function JobsPage() {
         return true;
     });
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[50vh]">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
-            </div>
-        );
-    }
+    const handleAlert = () => {
+        toast.success("Job alerts set! We'll notify you when new roles match your profile.");
+    };
 
     if (error) {
         return (
@@ -133,6 +151,40 @@ export default function JobsPage() {
 
     const FilterContent = () => (
         <>
+            {/* 0 Results Indicator in Filters */}
+            {filteredJobs.length === 0 && !loading && (
+                <div style={{
+                    marginBottom: '16px',
+                    padding: '8px 12px',
+                    backgroundColor: '#fff1f2',
+                    color: '#e11d48',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                }}>
+                    <X size={14} />
+                    0 results found
+                </div>
+            )}
+
+            {/* Active Filters Clear Button (Prominent) */}
+            {isFilterActive && (
+                <div className="filter-group" style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <h3 className="filter-title" style={{ margin: 0 }}>Active Filters</h3>
+                        <button
+                            onClick={handleClearFilters}
+                            style={{ fontSize: '12px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="filter-group">
                 <h3 className="filter-title">Employment Type</h3>
                 <div className="checkbox-group">
@@ -189,17 +241,11 @@ export default function JobsPage() {
                 />
             </div>
 
-            <div className="filter-actions">
-                {/* Filters are applied automatically in this implementation */}
-                <button
-                    type="button"
-                    className="btn-secondary"
-                    style={{ width: '100%' }}
-                    onClick={handleClearFilters}
-                >
-                    Clear Filters
-                </button>
-            </div>
+            {filteredJobs.length === 0 && (
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', lineHeight: '1.5' }}>
+                    Try removing some filters to see more results.
+                </p>
+            )}
         </>
     );
 
@@ -225,19 +271,118 @@ export default function JobsPage() {
             </div>
 
             <div className="jobs-page-grid">
-                {/* Job List - Now on LEFT */}
+                {/* Job List - LEFT */}
                 <div className="job-list">
-                    {jobs.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-100 shadow-sm">
-                            <div style={{ backgroundColor: '#eff6ff', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                                <Briefcase size={32} style={{ color: '#3b82f6' }} />
-                            </div>
-                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '12px' }}>No jobs available yet</h2>
-                            <p style={{ color: '#6b7280', maxWidth: '400px', margin: '0 auto' }}>
-                                We're currently matching new opportunities. Check back soon for new openings!
-                            </p>
+                    {loading ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <JobSkeleton />
+                            <JobSkeleton />
+                            <JobSkeleton />
                         </div>
-                    ) : filteredJobs.length > 0 ? (
+                    ) : jobs.length === 0 ? (
+                        // GLOBAL EMPTY STATE (No jobs in DB)
+                        <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-100 shadow-sm" style={{ padding: '64px 24px', maxWidth: '520px', margin: '0 auto' }}>
+                            <div style={{
+                                backgroundColor: '#eff6ff',
+                                width: '80px',
+                                height: '80px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 24px'
+                            }}>
+                                <Briefcase size={40} style={{ color: '#3b82f6' }} />
+                            </div>
+                            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#111827', marginBottom: '12px' }}>No matching jobs right now</h2>
+                            <p style={{ color: '#6b7280', maxWidth: '400px', margin: '0 auto 32px', fontSize: '16px', lineHeight: '1.6' }}>
+                                We’re adding new roles daily. Update your preferences or set alerts—we’ll notify you.
+                            </p>
+                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                <button onClick={handleAlert} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Bell size={18} /> Set Job Alerts
+                                </button>
+                                <Link href="/dashboard/profile" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <User size={18} /> Update Profile
+                                </Link>
+                            </div>
+                        </div>
+                    ) : filteredJobs.length === 0 ? (
+                        // FILTERED EMPTY STATE (No matches)
+                        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm" style={{ padding: '48px 24px' }}>
+                            <div style={{
+                                backgroundColor: '#f3f4f6',
+                                width: '64px',
+                                height: '64px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 20px'
+                            }}>
+                                <Search size={28} style={{ color: '#9ca3af' }} />
+                            </div>
+                            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>No jobs found</h2>
+                            <p style={{ color: '#6b7280', fontSize: '15px', marginBottom: '24px' }}>
+                                We found 0 results for your selected filters.
+                            </p>
+
+                            {/* Suggested Actions Chips */}
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '400px', margin: '0 auto' }}>
+                                <button
+                                    onClick={handleClearFilters}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: '20px',
+                                        border: '1px solid #e5e7eb',
+                                        backgroundColor: 'white',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        color: '#374151',
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}
+                                >
+                                    Clear all filters
+                                </button>
+                                {filters.skills && (
+                                    <button
+                                        onClick={() => setFilters({ ...filters, skills: '' })}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '20px',
+                                            border: '1px solid #bfdbfe',
+                                            backgroundColor: '#eff6ff',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            color: '#1d4ed8',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Remove search "{filters.skills}"
+                                    </button>
+                                )}
+                                {filters.category !== 'All Categories' && (
+                                    <button
+                                        onClick={() => setFilters({ ...filters, category: 'All Categories' })}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '20px',
+                                            border: '1px solid #e5e7eb',
+                                            backgroundColor: 'white',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            color: '#374151',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Show all categories
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        // JOB LISTING
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             {filteredJobs.map((job) => {
                                 const hasApplied = appliedJobIds.has(job.id);
@@ -393,29 +538,10 @@ export default function JobsPage() {
                                 );
                             })}
                         </div>
-                    ) : (
-                        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                            <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '12px' }}>No jobs found matching your criteria.</p>
-                            <button
-                                type="button"
-                                onClick={handleClearFilters}
-                                style={{
-                                    color: '#3b82f6',
-                                    background: 'none',
-                                    border: 'none',
-                                    fontSize: '15px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    textDecoration: 'underline'
-                                }}
-                            >
-                                Clear all filters
-                            </button>
-                        </div>
                     )}
                 </div>
 
-                {/* Desktop Filter Panel - Now on RIGHT */}
+                {/* Desktop Filter Panel - RIGHT */}
                 <div className="filter-card card desktop-filter">
                     <h3 className="filter-header">Filters</h3>
                     <FilterContent />

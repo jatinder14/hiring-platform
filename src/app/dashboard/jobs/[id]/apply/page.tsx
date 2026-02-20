@@ -188,10 +188,36 @@ export default function ApplyPage() {
                 }
                 finalResumeUrl = resumeLink;
             } else {
-                // Resume upload not yet implemented - require link to avoid submitting fake URLs
-                toast.error("Resume upload is not available yet. Please use 'Paste a link' and provide a URL to your resume (e.g. Google Drive, Dropbox).");
-                setIsSubmitting(false);
-                return;
+                if (!resume) {
+                    toast.error("Please upload a resume file.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                // Upload File
+                const uploadForm = new FormData();
+                uploadForm.append('file', resume);
+
+                try {
+                    const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: uploadForm
+                    });
+
+                    if (!uploadRes.ok) throw new Error('Upload failed');
+
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.success && uploadData.url) {
+                        finalResumeUrl = uploadData.url;
+                    } else {
+                        throw new Error(uploadData.error || 'Upload failed');
+                    }
+                } catch (err) {
+                    console.error("Upload error:", err);
+                    toast.error("Failed to upload resume. Please try again.");
+                    setIsSubmitting(false);
+                    return;
+                }
             }
 
             const response = await fetch('/api/applications', {

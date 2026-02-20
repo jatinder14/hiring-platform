@@ -31,26 +31,50 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         jwt: async ({ token, user, trigger }) => {
             if (user && user.email) {
-                const roleCookie = cookies().get("login_role")?.value;
                 let initialRole: UserRole = UserRole.CANDIDATE;
-                if (roleCookie === "recruiter") {
-                    initialRole = UserRole.RECRUITER;
+                try {
+                    const cookieStore = await cookies();
+                    const roleCookie = cookieStore.get("login_role")?.value;
+                    if (roleCookie === "recruiter") {
+                        initialRole = UserRole.RECRUITER;
+                    }
+                } catch (error) {
+                    console.error("Error reading cookies in auth:", error);
+                    // Default to CANDIDATE if cookie fails
                 }
 
-                const dbUser = await prisma.user.upsert({
-                    where: { email: user.email },
-                    update: {},
-                    create: {
-                        email: user.email,
-                        name: user.name,
-                        profileImageUrl: user.image,
-                        userRole: initialRole,
-                    },
-                });
+                try {
+                    const dbUser = await prisma.user.upsert({
+                        where: { email: user.email },
+                        update: {},
+                        create: {
+                            email: user.email,
+                            name: user.name,
+                            profileImageUrl: user.image,
+                            userRole: initialRole,
+                        },
+                    });
 
-                // Always use the role from the database
-                token.role = dbUser.userRole === UserRole.RECRUITER ? "recruiter" : "candidate";
-                token.id = dbUser.id;
+                    // Always use the role from the database
+                    token.role = dbUser.userRole === UserRole.RECRUITER ? "recruiter" : "candidate";
+                    token.id = dbUser.id;
+                } catch (dbError) {
+                    console.error("Database error in auth upsert:", dbError);
+                    // Fallback: use initialRole if DB fails (shouldn't happen but safe)
+                    token.role = initialRole === UserRole.RECRUITER ? "recruiter" : "candidate";
+                    // token.id might be missing, user creation failed?
+                }
+            } else if (!token.role && token.email) {
+                // Return user session but role is missing (e.g. from old session), fetch it
+                try {
+                    const dbUser = await prisma.user.findUnique({ where: { email: token.email } });
+                    if (dbUser) {
+                        token.role = dbUser.userRole === UserRole.RECRUITER ? "recruiter" : "candidate";
+                        token.id = dbUser.id;
+                    }
+                } catch (fetchError) {
+                    console.error("Error fetching user role:", fetchError);
+                }
             }
             return token;
         },
