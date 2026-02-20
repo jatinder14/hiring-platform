@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/jobs/[id]
- * Public job details - only returns safe fields (no companyId)
+ * Public job details - returns all fields needed for job detail view
  */
 export async function GET(
     request: Request,
@@ -34,15 +34,16 @@ export async function GET(
                 experienceMin: true,
                 experienceMax: true,
                 status: true,
+                createdAt: true,
             }
         });
 
-        if (!job || job.status !== 'ACTIVE') {
+        if (!job) {
             return NextResponse.json({ error: 'Job not found' }, { status: 404 });
         }
 
-        const { status: _s, ...publicJob } = job;
-        return NextResponse.json(publicJob);
+        // Return job even if CLOSED/ARCHIVED so applicants can still view their applied job
+        return NextResponse.json(job);
     } catch (error) {
         return api500("Failed to fetch job details", "GET /api/jobs/[id]", error);
     }

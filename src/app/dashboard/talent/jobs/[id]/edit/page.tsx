@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import {
     Building2,
     Globe
 } from 'lucide-react';
+import SalaryInput, { unformatSalary } from '@/components/ui/SalaryInput';
 
 interface JobFormData {
     title: string;
@@ -33,7 +34,8 @@ interface JobFormData {
     status: string;
 }
 
-export default function EditJobPage({ params }: { params: { id: string } }) {
+export default function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id: jobId } = use(params);
     const router = useRouter();
     const base = useRecruiterBasePath();
     const [loading, setLoading] = useState(true);
@@ -58,23 +60,22 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
     useEffect(() => {
         const fetchJob = async () => {
             try {
-                const id = Array.isArray(params.id) ? params.id[0] : params.id;
-                const res = await fetch(`/api/company/jobs/${id}`);
+                const res = await fetch(`/api/company/jobs/${jobId}`);
 
                 if (!res.ok) throw new Error('Failed to fetch job');
 
                 const data = await res.json();
 
-                // Parse Salary string if possible
+                // Parse Salary string — strip any existing commas to get raw digits
                 let min = '';
                 let max = '';
                 if (data.salary) {
                     const parts = data.salary.split(' - ');
                     if (parts.length === 2) {
-                        min = parts[0];
-                        max = parts[1];
+                        min = unformatSalary(parts[0]);
+                        max = unformatSalary(parts[1]);
                     } else {
-                        min = data.salary;
+                        min = unformatSalary(data.salary);
                     }
                 }
 
@@ -100,7 +101,7 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
         };
 
         fetchJob();
-    }, [params.id]);
+    }, [jobId]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -129,7 +130,7 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
         setSaving(true);
 
         try {
-            // Combine salary
+            // Combine salary — use raw digit values as stored in state
             let finalSalary = formData.salaryMin;
             if (formData.salaryMax) {
                 finalSalary = `${formData.salaryMin} - ${formData.salaryMax}`;
@@ -138,8 +139,7 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
             const { salaryMin: _sMin, salaryMax: _sMax, ...rest } = formData;
             const payload = { ...rest, salary: finalSalary };
 
-            const id = Array.isArray(params.id) ? params.id[0] : params.id;
-            const res = await fetch(`/api/company/jobs/${id}`, {
+            const res = await fetch(`/api/company/jobs/${jobId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -272,25 +272,27 @@ export default function EditJobPage({ params }: { params: { id: string } }) {
                         <div style={{ flex: '1 1 150px' }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Salary Range</label>
                             <div style={{ position: 'relative' }}>
-                                <DollarSign size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: '#9ca3af' }} />
-                                <input
-                                    type="text"
+                                <DollarSign size={18} style={{ position: 'absolute', left: '12px', top: '13px', color: '#9ca3af', zIndex: 1 }} />
+                                <SalaryInput
+                                    id="edit-salary-min"
                                     name="salaryMin"
                                     value={formData.salaryMin}
-                                    onChange={handleChange}
+                                    onChange={(raw) => setFormData(prev => ({ ...prev, salaryMin: raw }))}
+                                    currency={formData.currency}
                                     className="form-input"
                                     style={{ width: '100%', paddingLeft: '40px' }}
-                                    placeholder="Min"
+                                    placeholder="Min salary"
                                 />
                             </div>
                         </div>
                         <div style={{ flex: '1 1 150px' }}>
                             <div style={{ position: 'relative' }}>
-                                <input
-                                    type="text"
+                                <SalaryInput
+                                    id="edit-salary-max"
                                     name="salaryMax"
                                     value={formData.salaryMax}
-                                    onChange={handleChange}
+                                    onChange={(raw) => setFormData(prev => ({ ...prev, salaryMax: raw }))}
+                                    currency={formData.currency}
                                     className="form-input"
                                     style={{ width: '100%', paddingLeft: '16px' }}
                                     placeholder="Max (Optional)"

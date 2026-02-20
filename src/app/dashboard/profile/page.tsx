@@ -28,8 +28,9 @@ interface ResumeFile {
     id: string;
     name: string;
     type: string;
-    url: string;
+    url: string;          // blob: URL (local) or remote URL
     size: string;
+    rawFile?: File;       // keep reference to original File for reliable preview
 }
 
 const COUNTRIES = [
@@ -131,15 +132,13 @@ export default function ProfilePage() {
     const [twitter, setTwitter] = useState('');
     const [noticePeriod, setNoticePeriod] = useState('Immediate');
 
-    // CTC States - Store only currency codes, derive objects when needed
-    const [currentCurrencyCode, setCurrentCurrencyCode] = useState('USD');
+    // CTC States - Single shared currency (both fields must use same currency)
+    const [salaryCurrencyCode, setSalaryCurrencyCode] = useState('USD');
     const [currentCTC, setCurrentCTC] = useState('');
-    const [expectedCurrencyCode, setExpectedCurrencyCode] = useState('USD');
     const [expectedCTC, setExpectedCTC] = useState('');
 
-    // Derive currency objects from codes
-    const currentCurrency = CURRENCIES.find(c => c.code === currentCurrencyCode) || CURRENCIES[0];
-    const expectedCurrency = CURRENCIES.find(c => c.code === expectedCurrencyCode) || CURRENCIES[0];
+    // Derive shared currency object
+    const salaryCurrency = CURRENCIES.find(c => c.code === salaryCurrencyCode) || CURRENCIES[0];
 
     // Derive country object from selected code
     const countryCode = COUNTRIES.find(c => c.code === selectedCountryCode) || COUNTRIES[0];
@@ -151,6 +150,10 @@ export default function ProfilePage() {
     // UI States
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Resume preview state
+    const [previewFile, setPreviewFile] = useState<ResumeFile | null>(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const resumeInputRef = useRef<HTMLInputElement>(null);
@@ -178,6 +181,9 @@ export default function ProfilePage() {
 
                         setCurrentCTC(data.currentCTC || '');
                         setExpectedCTC(data.expectedCTC || '');
+                        // Restore shared currency (use currentCurrency as source of truth)
+                        if (data.currentCurrency) setSalaryCurrencyCode(data.currentCurrency);
+                        else if (data.expectedCurrency) setSalaryCurrencyCode(data.expectedCurrency);
                         setNoticePeriod(data.noticePeriod || 'Immediate');
                         setProfileImage(data.profileImageUrl || session?.user?.image || null);
                     }
@@ -200,6 +206,13 @@ export default function ProfilePage() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Close preview modal on Escape
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closePreview(); };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, []);
+
     const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -219,11 +232,67 @@ export default function ProfilePage() {
                 name: file.name,
                 type: file.type,
                 size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-                url: URL.createObjectURL(file)
+                url: URL.createObjectURL(file),
+                rawFile: file,   // ← store raw File for reliable preview
             }));
             setResumes(prev => [...prev, ...newResumes]);
         }
+        // Reset input so same file can be re-selected
+        e.target.value = '';
     };
+
+    /**
+     * Smart preview handler:
+     * - PDF (blob or remote) → in-app iframe modal
+     * - Image → new tab (blob URL works fine)
+     * - DOC/DOCX (remote URL) → Google Docs Viewer iframe
+     * - DOC/DOCX (local blob) → trigger download (Google Docs can't read blob:)
+     */
+    const handlePreview = (file: ResumeFile) => {
+        const isImage = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        const isDoc = file.name.toLowerCase().endsWith('.doc') || file.name.toLowerCase().endsWith('.docx')
+            || file.type.includes('word') || file.type.includes('officedocument');
+        const isBlob = file.url.startsWith('blob:');
+
+        if (isImage) {
+            window.open(file.url, '_blank');
+            return;
+        }
+
+        if (isPdf) {
+            // PDF: show in iframe modal (blob URLs work fine in iframe)
+            setPreviewFile(file);
+            setPreviewLoading(true);
+            return;
+        }
+
+        if (isDoc) {
+            if (isBlob) {
+                // Local blob: Google Docs Viewer can't read blob: — trigger download instead
+                const a = document.createElement('a');
+                a.href = file.url;
+                a.download = file.name;
+                a.click();
+                toast('DOC/DOCX downloaded — open with Word or Docs to preview.');
+            } else {
+                // Remote URL: send through Google Docs Viewer
+                const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`;
+                setPreviewFile({ ...file, url: viewerUrl });
+                setPreviewLoading(true);
+            }
+            return;
+        }
+
+        // Fallback: try new tab
+        if (file.url) {
+            window.open(file.url, '_blank');
+        } else {
+            toast.error('Resume not available. Please re-upload.');
+        }
+    };
+
+    const closePreview = () => setPreviewFile(null);
 
     const deleteResume = (id: string) => {
         setResumes(prev => prev.filter(r => r.id !== id));
@@ -239,14 +308,16 @@ export default function ProfilePage() {
                 body: JSON.stringify({
                     name: fullName,
                     phoneNumber,
-                    country: selectedCountryIso, // Storing ISO or name? Using the state variable
+                    country: selectedCountryIso,
                     state: selectedStateIso,
                     city: selectedCityName,
                     linkedin,
                     github,
                     twitter,
                     currentCTC,
+                    currentCurrency: salaryCurrencyCode,
                     expectedCTC,
+                    expectedCurrency: salaryCurrencyCode,  // always same as current
                     noticePeriod,
                     profileImageUrl: profileImage
                 })
@@ -449,13 +520,15 @@ export default function ProfilePage() {
                     {/* Professional Information */}
                     <div className="section-title mt-8">Professional Information</div>
                     <div className="form-grid">
-                        <div className="form-group">
-                            <label className="form-label">Current CTC (Annual) - Optional</label>
-                            <div className="currency-input-group">
+                        {/* Shared Currency Selector */}
+                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                            <label className="form-label">Salary Currency</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <select
                                     className="form-input currency-select"
-                                    value={currentCurrency.code}
-                                    onChange={(e) => setCurrentCurrencyCode(e.target.value)}
+                                    style={{ maxWidth: '200px' }}
+                                    value={salaryCurrencyCode}
+                                    onChange={(e) => setSalaryCurrencyCode(e.target.value)}
                                 >
                                     {CURRENCIES.map(c => (
                                         <option key={c.code} value={c.code}>
@@ -463,52 +536,34 @@ export default function ProfilePage() {
                                         </option>
                                     ))}
                                 </select>
-                                <div className="input-wrapper amount-input">
-                                    <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#374151', pointerEvents: 'none' }}>
-                                        {currentCurrency.symbol}
-                                    </span>
-                                    <input
-                                        type="number"
-                                        className="form-input"
-                                        style={{ paddingLeft: '32px' }}
-                                        placeholder="Amount"
-                                        value={currentCTC}
-                                        onChange={(e) => setCurrentCTC(e.target.value)}
-                                        min="0"
-                                    />
-                                </div>
+                                <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                                    Applied to both Current &amp; Expected CTC
+                                </span>
                             </div>
                         </div>
 
                         <div className="form-group">
+                            <label className="form-label">Current CTC (Annual) - Optional</label>
+                            <input
+                                type="number"
+                                className="form-input"
+                                placeholder="Enter amount"
+                                value={currentCTC}
+                                onChange={(e) => setCurrentCTC(e.target.value)}
+                                min="0"
+                            />
+                        </div>
+
+                        <div className="form-group">
                             <label className="form-label">Expected CTC - Optional</label>
-                            <div className="currency-input-group">
-                                <select
-                                    className="form-input currency-select"
-                                    value={expectedCurrency.code}
-                                    onChange={(e) => setExpectedCurrencyCode(e.target.value)}
-                                >
-                                    {CURRENCIES.map(c => (
-                                        <option key={c.code} value={c.code}>
-                                            {c.code} ({c.symbol})
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="input-wrapper amount-input">
-                                    <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#374151', pointerEvents: 'none' }}>
-                                        {expectedCurrency.symbol}
-                                    </span>
-                                    <input
-                                        type="number"
-                                        className="form-input"
-                                        style={{ paddingLeft: '32px' }}
-                                        placeholder="Amount"
-                                        value={expectedCTC}
-                                        onChange={(e) => setExpectedCTC(e.target.value)}
-                                        min="0"
-                                    />
-                                </div>
-                            </div>
+                            <input
+                                type="number"
+                                className="form-input"
+                                placeholder="Enter amount"
+                                value={expectedCTC}
+                                onChange={(e) => setExpectedCTC(e.target.value)}
+                                min="0"
+                            />
                         </div>
 
                         <div className="form-group">
@@ -524,20 +579,6 @@ export default function ProfilePage() {
                                 <option>60 Days</option>
                                 <option>90 Days</option>
                             </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label className="form-label">LinkedIn Profile</label>
-                            <div className="input-wrapper">
-                                <Linkedin size={18} />
-                                <input
-                                    type="url"
-                                    className="form-input"
-                                    value={linkedin}
-                                    onChange={(e) => setLinkedin(e.target.value)}
-                                    placeholder="https://linkedin.com/in/username"
-                                />
-                            </div>
                         </div>
                     </div>
 
@@ -564,8 +605,8 @@ export default function ProfilePage() {
                                         <button
                                             type="button"
                                             className="action-btn view"
-                                            title="View Resume"
-                                            onClick={() => window.open(file.url, '_blank')}
+                                            title="Preview Resume"
+                                            onClick={() => handlePreview(file)}
                                         >
                                             <Eye size={18} />
                                         </button>
@@ -592,7 +633,7 @@ export default function ProfilePage() {
                             ref={resumeInputRef}
                             hidden
                             multiple
-                            accept=".pdf,image/*"
+                            accept=".pdf,.doc,.docx,image/*"
                             onChange={handleResumeUpload}
                         />
                     </div>
@@ -604,7 +645,143 @@ export default function ProfilePage() {
                         </button>
                     </div>
                 </form>
-            </div >
-        </div >
+            </div>
+
+            {/* ── Resume Preview Modal ── */}
+            {previewFile && (
+                <>
+                    {/* Backdrop — also acts as the centring flex container */}
+                    <div
+                        onClick={closePreview}
+                        style={{
+                            position: 'fixed', inset: 0, zIndex: 1000,
+                            background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: 'clamp(0px, 2vw, 24px)',
+                            animation: 'fadeIn 0.18s ease',
+                        }}
+                    >
+                        {/* Modal card */}
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                width: '100%',
+                                maxWidth: '900px',
+                                height: '100%',
+                                maxHeight: '92vh',
+                                background: '#1a1a2e',
+                                borderRadius: 'clamp(0px, 2vw, 16px)',
+                                boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+                                display: 'flex', flexDirection: 'column',
+                                overflow: 'hidden',
+                                animation: 'scaleIn 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+                            }}
+                        >
+                            {/* ── Header ── */}
+                            <div style={{
+                                display: 'flex', alignItems: 'center',
+                                justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px',
+                                padding: '12px 16px',
+                                background: '#0f0f1a',
+                                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                                flexShrink: 0,
+                                minHeight: '52px',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                                    <FileText size={16} style={{ color: '#60a5fa', flexShrink: 0 }} />
+                                    <span style={{
+                                        fontSize: '13px', fontWeight: '600', color: '#e2e8f0',
+                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                        maxWidth: '55vw',
+                                    }}>
+                                        {previewFile.name}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                                    <a
+                                        href={previewFile.rawFile
+                                            ? URL.createObjectURL(previewFile.rawFile)
+                                            : previewFile.url}
+                                        download={previewFile.name}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            padding: '5px 12px', borderRadius: '7px',
+                                            background: 'rgba(255,255,255,0.07)', color: '#94a3b8',
+                                            fontSize: '12px', fontWeight: '600', textDecoration: 'none',
+                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                            border: '1px solid rgba(255,255,255,0.08)',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        ↓ Download
+                                    </a>
+                                    <button
+                                        onClick={closePreview}
+                                        style={{
+                                            padding: '5px 12px', border: '1px solid rgba(239,68,68,0.25)',
+                                            borderRadius: '7px',
+                                            background: 'rgba(239,68,68,0.12)', color: '#f87171',
+                                            fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        ✕ Close
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* ── Content / iframe ── */}
+                            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#111122' }}>
+                                {previewLoading && (
+                                    <div style={{
+                                        position: 'absolute', inset: 0, zIndex: 2,
+                                        display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        background: '#1a1a2e', gap: '14px',
+                                    }}>
+                                        <div style={{
+                                            width: '36px', height: '36px',
+                                            border: '3px solid rgba(96,165,250,0.15)',
+                                            borderTop: '3px solid #60a5fa',
+                                            borderRadius: '50%',
+                                            animation: 'spin 0.75s linear infinite',
+                                        }} />
+                                        <span style={{ fontSize: '13px', color: '#475569' }}>
+                                            Loading preview…
+                                        </span>
+                                    </div>
+                                )}
+                                <iframe
+                                    key={previewFile.url}
+                                    src={previewFile.url}
+                                    title={previewFile.name}
+                                    style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                                    onLoad={() => setPreviewLoading(false)}
+                                    onError={() => {
+                                        setPreviewLoading(false);
+                                        toast.error('Resume not available. Please re-upload.');
+                                        closePreview();
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <style>{`
+                        @keyframes fadeIn  { from { opacity: 0 }                         to { opacity: 1 } }
+                        @keyframes scaleIn { from { opacity: 0; transform: scale(0.96) } to { opacity: 1; transform: scale(1) } }
+                        @keyframes spin    { to   { transform: rotate(360deg) } }
+                        @media (max-width: 480px) {
+                            .resume-modal-card {
+                                border-radius: 0 !important;
+                                max-height: 100dvh !important;
+                                max-width: 100% !important;
+                            }
+                        }
+                    `}</style>
+                </>
+            )}
+        </div>
     );
 }

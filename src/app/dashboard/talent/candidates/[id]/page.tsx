@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useRecruiterBasePath } from '@/components/RecruiterBasePathContext';
 import { notFound } from 'next/navigation';
@@ -104,7 +104,8 @@ interface ApplicationWithCandidate {
     } | null;
 }
 
-export default function CandidateProfilePage({ params }: { params: { id: string } }) {
+export default function CandidateProfilePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id: appId } = use(params);
     const base = useRecruiterBasePath();
     const [application, setApplication] = useState<ApplicationWithCandidate | null>(null);
     const [loading, setLoading] = useState(true);
@@ -118,8 +119,7 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
         setFetchError(null);
         setLoading(true);
         try {
-            const id = Array.isArray(params.id) ? params.id[0] : params.id;
-            const res = await fetch(`/api/company/applications/${id}`);
+            const res = await fetch(`/api/company/applications/${appId}`);
 
             if (!res.ok) {
                 if (res.status === 404) notFound();
@@ -136,7 +136,7 @@ export default function CandidateProfilePage({ params }: { params: { id: string 
         } finally {
             setLoading(false);
         }
-    }, [params.id]);
+    }, [appId]);
 
     useEffect(() => {
         fetchApplication();

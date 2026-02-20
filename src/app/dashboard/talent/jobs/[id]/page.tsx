@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter, notFound } from 'next/navigation';
 import { toast } from 'sonner';
@@ -21,7 +21,8 @@ import {
     LayoutDashboard
 } from 'lucide-react';
 
-export default function ViewJobPage({ params }: { params: { id: string } }) {
+export default function ViewJobPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id: jobId } = use(params);
     const router = useRouter();
     const base = useRecruiterBasePath();
     const [job, setJob] = useState<any>(null);
@@ -31,9 +32,7 @@ export default function ViewJobPage({ params }: { params: { id: string } }) {
     useEffect(() => {
         const fetchJob = async () => {
             try {
-                // Handle params.id if it's an array (next.js edge case)
-                const id = Array.isArray(params.id) ? params.id[0] : params.id;
-                const res = await fetch(`/api/company/jobs/${id}`);
+                const res = await fetch(`/api/company/jobs/${jobId}`);
 
                 if (!res.ok) {
                     if (res.status === 404) notFound();
@@ -50,7 +49,7 @@ export default function ViewJobPage({ params }: { params: { id: string } }) {
         };
 
         fetchJob();
-    }, [params.id]);
+    }, [jobId]);
 
     // Add Escape key listener for modal
     useEffect(() => {

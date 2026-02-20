@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useRecruiterBasePath } from '@/components/RecruiterBasePathContext';
 import { Briefcase, MapPin, DollarSign, Clock, CheckCircle, ChevronRight, X, Plus, Search, Globe, Building2, Map as MapIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import SearchableSelect from '@/components/ui/SearchableSelect';
+import SalaryInput, { formatSalary } from '@/components/ui/SalaryInput';
 
 type JobData = {
     title: string;
@@ -53,18 +55,14 @@ const SKILLS_DB = [
     "Problem Solving", "Teamwork", "Communication", "Leadership", "Spanish", "German", "French", "Japanese"
 ];
 
-// Simple Location Data for Demo
-const COUNTRIES = ["United States", "India", "United Kingdom", "Canada", "Germany", "United Arab Emirates", "Australia"];
-const STATES: Record<string, string[]> = {
-    "United States": ["California", "New York", "Texas", "Florida", "Washington"],
-    "India": ["Maharashtra", "Karnataka", "Delhi", "Tamil Nadu", "Telangana", "Gujarat"],
-    "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland"],
-};
-const CITIES: Record<string, string[]> = {
-    "California": ["San Francisco", "Los Angeles", "San Diego", "San Jose"],
-    "New York": ["New York City", "Buffalo", "Rochester"],
-    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik"],
-    "Karnataka": ["Bangalore", "Mysore", "Hubli"],
+// Location data is lazy-loaded on first render to keep initial bundle small
+type LocationModule = typeof import('@/data/world-locations');
+let _locationMod: LocationModule | null = null;
+const loadLocationData = async (): Promise<LocationModule> => {
+    if (!_locationMod) {
+        _locationMod = await import('@/data/world-locations');
+    }
+    return _locationMod;
 };
 
 export default function CreateJobForm() {
@@ -74,7 +72,7 @@ export default function CreateJobForm() {
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Form State
+    // Form State - declared first so useMemo hooks below can reference it
     const [formData, setFormData] = useState<JobData>({
         title: '',
         company: (typeof session?.user === 'object' && session?.user && 'name' in session.user && session.user.name) ? String(session.user.name) : '',
@@ -94,6 +92,23 @@ export default function CreateJobForm() {
         requirements: '',
         category: 'Engineering'
     });
+
+    // Location state - lazily loaded
+    const [locationMod, setLocationMod] = useState<LocationModule | null>(null);
+    useEffect(() => {
+        loadLocationData().then(setLocationMod);
+    }, []);
+
+    // Derived location lists - depend on formData, must come after useState
+    const countryList = useMemo(() => locationMod ? locationMod.ALL_COUNTRIES : [], [locationMod]);
+    const stateList = useMemo(
+        () => (locationMod && formData.country ? locationMod.getStates(formData.country) : []),
+        [locationMod, formData.country]
+    );
+    const cityList = useMemo(
+        () => (locationMod && formData.state ? locationMod.getCities(formData.country, formData.state) : []),
+        [locationMod, formData.country, formData.state]
+    );
 
     const [skillInput, setSkillInput] = useState('');
     const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
@@ -197,7 +212,7 @@ export default function CreateJobForm() {
                 city: formData.city,
                 pincode: formData.pincode,
 
-                // Salary Handling
+                // Salary Handling — store clean numbers, format for display
                 salary: formData.salaryMax
                     ? `${formData.salaryMin} - ${formData.salaryMax}`
                     : `${formData.salaryMin}`,
@@ -391,7 +406,12 @@ export default function CreateJobForm() {
 
                             {/* Location Section */}
                             <div className="form-group full-width" style={{ marginTop: '8px' }}>
-                                <label className="form-label" style={{ color: '#3b82f6', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location Details (Optional)</label>
+                                <label className="form-label" style={{ color: '#3b82f6', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Location Details (Optional)
+                                </label>
+                                {!locationMod && (
+                                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>Loading location data...</p>
+                                )}
                                 <div style={{
                                     display: 'grid',
                                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -401,39 +421,60 @@ export default function CreateJobForm() {
                                     {/* Country */}
                                     <div>
                                         <label className="form-label" style={{ fontSize: '13px' }}>Country</label>
-                                        <div className="input-wrapper">
-                                            <Globe size={16} />
-                                            <select name="country" value={formData.country} onChange={handleInputChange} className="form-input">
-                                                <option value="">Select Country</option>
-                                                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        </div>
+                                        <SearchableSelect
+                                            id="job-country"
+                                            options={countryList}
+                                            value={formData.country}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, country: val, state: '', city: '' }))}
+                                            placeholder={locationMod ? 'Select Country' : 'Loading...'}
+                                            disabled={!locationMod}
+                                            icon={<Globe size={16} />}
+                                            noResultsText="No country found"
+                                        />
                                     </div>
                                     {/* State */}
                                     <div>
-                                        <label className="form-label" style={{ fontSize: '13px' }}>State</label>
-                                        <div className="input-wrapper">
-                                            <MapIcon size={16} />
-                                            <select name="state" value={formData.state} onChange={handleInputChange} className="form-input" disabled={!formData.country}>
-                                                <option value="">Select State</option>
-                                                {(STATES[formData.country] || []).map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </div>
+                                        <label className="form-label" style={{ fontSize: '13px' }}>State / Province</label>
+                                        <SearchableSelect
+                                            id="job-state"
+                                            options={stateList}
+                                            value={formData.state}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, state: val, city: '' }))}
+                                            placeholder={!formData.country ? 'Select Country first' : stateList.length === 0 ? 'No states available' : 'Select State'}
+                                            disabled={!formData.country || stateList.length === 0}
+                                            icon={<MapIcon size={16} />}
+                                            noResultsText="No state found"
+                                        />
                                     </div>
                                     {/* City */}
                                     <div>
                                         <label className="form-label" style={{ fontSize: '13px' }}>City</label>
-                                        <div className="input-wrapper">
-                                            <Building2 size={16} />
-                                            <select name="city" value={formData.city} onChange={handleInputChange} className="form-input" disabled={!formData.state}>
-                                                <option value="">Select City</option>
-                                                {(CITIES[formData.state] || []).map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        </div>
+                                        <SearchableSelect
+                                            id="job-city"
+                                            options={cityList}
+                                            value={formData.city}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, city: val }))}
+                                            placeholder={!formData.state ? 'Select State first' : cityList.length === 0 ? 'Type city manually' : 'Select City'}
+                                            disabled={!formData.state || cityList.length === 0}
+                                            icon={<Building2 size={16} />}
+                                            noResultsText="No city found"
+                                        />
+                                        {/* If no cities in db, allow free text */}
+                                        {formData.state && cityList.length === 0 && (
+                                            <input
+                                                type="text"
+                                                name="city"
+                                                value={formData.city}
+                                                onChange={handleInputChange}
+                                                placeholder="Enter city name"
+                                                className="form-input"
+                                                style={{ marginTop: '8px' }}
+                                            />
+                                        )}
                                     </div>
                                     {/* Pincode */}
                                     <div>
-                                        <label className="form-label" style={{ fontSize: '13px' }}>Pincode</label>
+                                        <label className="form-label" style={{ fontSize: '13px' }}>Pincode / ZIP</label>
                                         <div className="input-wrapper">
                                             <MapPin size={16} />
                                             <input
@@ -454,18 +495,19 @@ export default function CreateJobForm() {
                                 <label className="form-label" style={{ color: '#3b82f6', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Compensation</label>
                                 <div className="compensation-grid">
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label" style={{ fontSize: '13px' }}>Min Salary</label>
+                                        <label className="form-label" style={{ fontSize: '13px' }}>Min Salary *</label>
                                         <div className="salary-input-group">
                                             <div className="currency-symbol">
                                                 {CURRENCIES.find(c => c.code === formData.currency)?.symbol}
                                             </div>
-                                            <input
-                                                type="number"
+                                            <SalaryInput
+                                                id="salary-min"
                                                 name="salaryMin"
                                                 value={formData.salaryMin}
-                                                onChange={handleInputChange}
-                                                placeholder="60,000"
-                                                min="0"
+                                                onChange={(raw) => setFormData(prev => ({ ...prev, salaryMin: raw }))}
+                                                currency={formData.currency}
+                                                placeholder="e.g. 60,000"
+                                                min={0}
                                             />
                                         </div>
                                     </div>
@@ -475,13 +517,14 @@ export default function CreateJobForm() {
                                             <div className="currency-symbol">
                                                 {CURRENCIES.find(c => c.code === formData.currency)?.symbol}
                                             </div>
-                                            <input
-                                                type="number"
+                                            <SalaryInput
+                                                id="salary-max"
                                                 name="salaryMax"
                                                 value={formData.salaryMax}
-                                                onChange={handleInputChange}
-                                                placeholder="90,000"
-                                                min="0"
+                                                onChange={(raw) => setFormData(prev => ({ ...prev, salaryMax: raw }))}
+                                                currency={formData.currency}
+                                                placeholder="e.g. 90,000"
+                                                min={0}
                                             />
                                         </div>
                                     </div>
@@ -660,7 +703,8 @@ export default function CreateJobForm() {
                                     <div style={{ textAlign: 'right' }}>
                                         <p style={{ fontSize: '12px', textTransform: 'uppercase', fontWeight: '800', color: '#9ca3af', marginBottom: '4px' }}>Salary Range</p>
                                         <p style={{ fontSize: '20px', fontWeight: '800', color: '#111827' }}>
-                                            {CURRENCIES.find(c => c.code === formData.currency)?.symbol}{formData.salaryMin} - {CURRENCIES.find(c => c.code === formData.currency)?.symbol}{formData.salaryMax}
+                                            {CURRENCIES.find(c => c.code === formData.currency)?.symbol}{formatSalary(formData.salaryMin, formData.currency)}
+                                            {formData.salaryMax ? ` – ${CURRENCIES.find(c => c.code === formData.currency)?.symbol}${formatSalary(formData.salaryMax, formData.currency)}` : ''}
                                         </p>
                                     </div>
                                 </div>

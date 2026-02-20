@@ -195,10 +195,14 @@ export async function GET(req: Request) {
                         location: true,
                         employmentType: true,
                         category: true,
+                        skills: true,
                         salary: true,
                         currency: true,
                         experienceMin: true,
-                        experienceMax: true
+                        experienceMax: true,
+                        description: true,
+                        status: true,
+                        createdAt: true,
                     }
                 }
             },
