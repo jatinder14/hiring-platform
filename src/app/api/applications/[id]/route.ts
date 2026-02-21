@@ -23,9 +23,10 @@ export async function PATCH(
         const applicationId = params.id;
         const body = await req.json();
 
+        // Fetch both ownership and current status in one round-trip
         const existingApp = await prisma.application.findUnique({
             where: { id: applicationId },
-            select: { candidateId: true }
+            select: { candidateId: true, status: true }
         });
 
         if (!existingApp) {
@@ -37,24 +38,34 @@ export async function PATCH(
         }
 
         if (body.status === 'WITHDRAWN') {
-            const currentApp = await prisma.application.findUnique({
-                where: { id: applicationId },
-                select: { status: true }
-            });
-
-            const terminalStates = ['REJECTED', 'ACCEPTED', 'HIRED', 'WITHDRAWN'];
-            if (currentApp && terminalStates.includes(currentApp.status)) {
+            // Terminal states based on the ApplicationStatus enum (no ACCEPTED value exists)
+            const terminalStates = ['REJECTED', 'HIRED', 'WITHDRAWN'];
+            if (terminalStates.includes(existingApp.status)) {
                 return NextResponse.json(
-                    { error: `Cannot withdraw application with status '${currentApp.status}'.` },
+                    { error: `Cannot withdraw application with status '${existingApp.status}'.` },
                     { status: 409 }
                 );
             }
 
-            const updatedApp = await prisma.application.update({
-                where: { id: applicationId },
-                data: { status: 'WITHDRAWN' }
-            });
-            return NextResponse.json(updatedApp);
+            // Atomic update: only succeeds if the status is still non-terminal,
+            // preventing a TOCTOU race where a concurrent recruiter action changes the status
+            // between the check above and the write below.
+            const [updatedCount, updatedApps] = await prisma.$transaction([
+                prisma.application.updateMany({
+                    where: { id: applicationId, status: { notIn: terminalStates as any } },
+                    data: { status: 'WITHDRAWN' }
+                }),
+                prisma.application.findMany({ where: { id: applicationId } })
+            ]);
+
+            if (updatedCount.count === 0) {
+                return NextResponse.json(
+                    { error: "Application could not be withdrawn (status may have changed)." },
+                    { status: 409 }
+                );
+            }
+
+            return NextResponse.json(updatedApps[0]);
         }
 
         return NextResponse.json({ error: "Invalid status update. Only 'WITHDRAWN' is allowed." }, { status: 400 });

@@ -31,6 +31,9 @@ export async function GET(req: Request) {
         const statusParam = searchParams.get('status');
         const fromDate = searchParams.get('fromDate');
         const toDate = searchParams.get('toDate');
+        const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+        const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') ?? '50', 10)));
+        const skip = (page - 1) * pageSize;
 
         let whereClause: {
             companyId: string;
@@ -63,19 +66,23 @@ export async function GET(req: Request) {
         }
 
         type AppWithJob = { candidateId: string; job: { id: string; title: string; category: string; employmentType: string; location: string; companyId: string } | null };
-        const applications = (await prisma.application.findMany({
-            where: whereClause,
-            include: {
-                job: {
-                    select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
-                }
-            },
-            orderBy: { appliedAt: 'desc' },
-            take: 50
-        })) as AppWithJob[];
+        const [total, applications] = await prisma.$transaction([
+            prisma.application.count({ where: whereClause }),
+            prisma.application.findMany({
+                where: whereClause,
+                include: {
+                    job: {
+                        select: { id: true, title: true, category: true, employmentType: true, location: true, companyId: true }
+                    }
+                },
+                orderBy: { appliedAt: 'desc' },
+                skip,
+                take: pageSize
+            })
+        ]);
 
-        const verified = applications.filter((app) => app.job && app.job.companyId === userId);
-        const candidateIds = Array.from(new Set(verified.map((app) => app.candidateId)));
+        // whereClause already filters by companyId; no in-memory re-check needed
+        const candidateIds = Array.from(new Set((applications as AppWithJob[]).map((app) => app.candidateId)));
 
         const candidates = await prisma.user.findMany({
             where: { id: { in: candidateIds } },
@@ -84,7 +91,7 @@ export async function GET(req: Request) {
 
         const candidateMap = new Map(candidates.map(c => [c.id, c]));
 
-        const enrichedApplications = verified.map((app) => {
+        const enrichedApplications = (applications as AppWithJob[]).map((app) => {
             const candidate = candidateMap.get(app.candidateId);
             return {
                 ...app,
@@ -92,7 +99,10 @@ export async function GET(req: Request) {
             };
         });
 
-        return NextResponse.json(enrichedApplications);
+        return NextResponse.json({
+            data: enrichedApplications,
+            pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) }
+        });
     } catch (error) {
         return api500("Failed to fetch applications", "GET /api/company/applications", error);
     }

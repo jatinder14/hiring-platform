@@ -29,9 +29,23 @@ export async function POST(req: Request) {
         }
 
         // 2. Parse request body
-        const body = await req.json();
-        // Request body parsed
-
+        interface ApplicationBody {
+            jobId?: string;
+            resumeUrl?: string;
+            motivation?: string | null;
+            currentCTC?: string | null;
+            expectedCTC?: string | null;
+            currentCurrency?: string | null;
+            expectedCurrency?: string | null;
+            noticePeriod?: string | null;
+            city?: string | null;
+        }
+        let body: ApplicationBody;
+        try {
+            body = await req.json();
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+        }
 
         const { jobId, resumeUrl, motivation, currentCTC, expectedCTC, currentCurrency, expectedCurrency, noticePeriod, city } = body;
 

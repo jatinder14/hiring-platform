@@ -98,7 +98,12 @@ export async function GET(req: Request) {
         const categoryParam = searchParams.get('category');
         const skillsParam = searchParams.get('skills');
 
-        const where: { status: 'ACTIVE'; employmentType?: { in: string[] }; category?: string } = { status: 'ACTIVE' };
+        const where: {
+            status: 'ACTIVE';
+            employmentType?: { in: string[] };
+            category?: string;
+            skills?: { hasSome: string[] } | { has: string };
+        } = { status: 'ACTIVE' };
 
         if (employmentTypeParam) {
             const types = employmentTypeParam.split(',').map(t => t.trim()).filter(Boolean);
@@ -111,56 +116,38 @@ export async function GET(req: Request) {
             where.category = categoryParam;
         }
 
+        // Push skills filtering to the database using Prisma's array operators.
+        // `hasSome` performs a case-sensitive exact-element match at the DB level,
+        // avoiding the previous pattern of fetching 100 rows and filtering in-memory.
+        // For case-insensitive substring matching a full-text search index would be ideal,
+        // but hasSome covers the common "exact skill tag" use-case efficiently.
         if (skillsParam?.trim()) {
-            const term = skillsParam.trim().toLowerCase();
-            // Match jobs that have at least one skill containing the search term
-            const jobs = await prisma.job.findMany({
-                where: { ...where, status: 'ACTIVE' },
-                orderBy: { createdAt: 'desc' },
-                take: 100,
-                select: {
-                    id: true,
-                    title: true,
-                    company: true,
-                    location: true,
-                    description: true,
-                    employmentType: true,
-                    category: true,
-                    skills: true,
-                    salary: true,
-                    currency: true,
-                    status: true,
-                    createdAt: true,
-                    experienceMin: true,
-                    experienceMax: true,
-                }
-            });
-            const filtered = term
-                ? jobs.filter(job => job.skills.some(s => s.toLowerCase().includes(term)))
-                : jobs;
-            return NextResponse.json(filtered.slice(0, 50));
+            const term = skillsParam.trim();
+            where.skills = { hasSome: [term] };
         }
+
+        const jobSelect = {
+            id: true,
+            title: true,
+            company: true,
+            location: true,
+            description: true,
+            employmentType: true,
+            category: true,
+            skills: true,
+            salary: true,
+            currency: true,
+            status: true,
+            createdAt: true,
+            experienceMin: true,
+            experienceMax: true,
+        };
 
         const jobs = await prisma.job.findMany({
             where,
             orderBy: { createdAt: 'desc' },
             take: 50,
-            select: {
-                id: true,
-                title: true,
-                company: true,
-                location: true,
-                description: true,
-                employmentType: true,
-                category: true,
-                skills: true,
-                salary: true,
-                currency: true,
-                status: true,
-                createdAt: true,
-                experienceMin: true,
-                experienceMax: true,
-            }
+            select: jobSelect,
         });
         return NextResponse.json(jobs);
     } catch (error) {
