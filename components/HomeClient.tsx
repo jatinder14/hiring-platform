@@ -9,7 +9,21 @@ import { FlowController } from "@/components/FlowController";
 import { HeroNav } from "@/components/HeroNav";
 import { HowItWorks } from "@/components/HowItWorks";
 import { PathwayTop } from "@/components/PathwayTop";
-import { FileUser, PhoneCall, Flag } from "lucide-react";
+import {
+  FileUser,
+  PhoneCall,
+  Flag,
+  Cpu,
+  Settings2,
+  Brain,
+  Handshake,
+  MessageCircle,
+  DollarSign,
+  UserCheck,
+  Sparkles,
+  ClipboardCheck,
+  Link2,
+} from "lucide-react";
 
 const HireU = dynamic(() => import("@/components/HireU").then((m) => ({ default: m.HireU })), { ssr: true });
 
@@ -28,6 +42,54 @@ const COMPANIES = [
   { name: "Uber", icon: ICON("uber") },
 ];
 
+const TEAM_MEMBERS = [
+  {
+    name: "Michael Kim",
+    role: "Lead AI Engineer",
+    bio: "Architect of the HireU platform. Expert in machine learning with scalable systems.",
+    avatar: "https://i.pravatar.cc/180?img=12",
+    icon: Cpu,
+    tilt: "tilt-left-2",
+    featured: false,
+  },
+  {
+    name: "David Chen",
+    role: "CTO",
+    bio: "Architect of the HireU platform. Expert in machine learning and scalable systems.",
+    avatar: "https://i.pravatar.cc/180?img=15",
+    icon: Settings2,
+    tilt: "tilt-left-1",
+    featured: false,
+  },
+  {
+    name: "sudheer",
+    role: "CEO & Founder",
+    bio: "Visionary leader passionate about connecting global talent with AI innovation.",
+    avatar: "https://i.pravatar.cc/180?img=20",
+    icon: Brain,
+    tilt: "tilt-center",
+    featured: true,
+  },
+  {
+    name: "Maria Rodriguez",
+    role: "Head of Talent",
+    bio: "Dedicated to building a world-class community of experts and ensuring their success.",
+    avatar: "https://i.pravatar.cc/180?img=47",
+    icon: Handshake,
+    tilt: "tilt-right-1",
+    featured: false,
+  },
+  {
+    name: "Sarah Lee",
+    role: "Community Manager",
+    bio: "Connecting global talent with AI-class opportunities and collaborative growth.",
+    avatar: "https://i.pravatar.cc/180?img=5",
+    icon: MessageCircle,
+    tilt: "tilt-right-2",
+    featured: false,
+  },
+] as const;
+
 export function HomeClient() {
   const heroRef = useRef<HTMLElement | null>(null);
   const storyRef = useRef<HTMLElement | null>(null);
@@ -35,14 +97,81 @@ export function HomeClient() {
   const exitTriggerRef = useRef<HTMLElement | null>(null);
   const statsRef = useRef<HTMLElement | null>(null);
   const companyMarkerRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const teamRef = useRef<HTMLElement | null>(null);
   const [statsOn, setStatsOn] = useState(false);
   const [companyMsgIdx, setCompanyMsgIdx] = useState(0);
+  const [teamInView, setTeamInView] = useState(false);
+  const [storyPage, setStoryPage] = useState(0);
 
   const COMPANY_MESSAGES = [
     "The complete human data engine for the world's most ambitious AI.",
     "We combine AI precision with human insight to shortlist top talent faster.",
     "Trusted by growing teams to turn hiring into a clear competitive edge.",
   ];
+
+  const STORY_CARDS = [
+    {
+      name: "Jane D.",
+      role: "NLP Specialist",
+      quote: "HireU helped me double my freelance income. The projects are consistently high-quality.",
+      avatar: "https://i.pravatar.cc/120?img=32",
+    },
+    {
+      name: "Alex K.",
+      role: "Computer Vision",
+      quote: "The platform is intuitive and the support is excellent. Highly recommend for AI experts.",
+      avatar: "https://i.pravatar.cc/120?img=61",
+    },
+    {
+      name: "Priya S.",
+      role: "ML Engineer",
+      quote: "Matched with clients who knew exactly what they wanted. Smooth and professional.",
+      avatar: "https://i.pravatar.cc/120?img=48",
+    },
+    {
+      name: "Diego R.",
+      role: "Data Scientist",
+      quote: "Fast payments and clear milestones. It feels like a premium marketplace.",
+      avatar: "https://i.pravatar.cc/120?img=68",
+    },
+    {
+      name: "Mei L.",
+      role: "AI Researcher",
+      quote: "Excellent project variety and great communication tools built in.",
+      avatar: "https://i.pravatar.cc/120?img=24",
+    },
+    {
+      name: "Sam T.",
+      role: "MLOps",
+      quote: "I love the quality bar. Every project is serious and well-scoped.",
+      avatar: "https://i.pravatar.cc/120?img=12",
+    },
+    {
+      name: "Fatima N.",
+      role: "Prompt Engineer",
+      quote: "I found consistent work and long-term clients within weeks.",
+      avatar: "https://i.pravatar.cc/120?img=46",
+    },
+    {
+      name: "Luca M.",
+      role: "AI Product",
+      quote: "The vetting process builds real trust between clients and experts.",
+      avatar: "https://i.pravatar.cc/120?img=53",
+    },
+    {
+      name: "Grace W.",
+      role: "Deep Learning",
+      quote: "Clear briefs, great support, and meaningful work. Highly recommended.",
+      avatar: "https://i.pravatar.cc/120?img=7",
+    },
+  ];
+
+  const STORIES_PER_PAGE = 2;
+  const totalStoryPages = Math.ceil(STORY_CARDS.length / STORIES_PER_PAGE);
+  const storyStart = storyPage * STORIES_PER_PAGE;
+  const visibleStories = STORY_CARDS.slice(storyStart, storyStart + STORIES_PER_PAGE);
+  const goPrevStory = () => setStoryPage((prev) => (prev - 1 + totalStoryPages) % totalStoryPages);
+  const goNextStory = () => setStoryPage((prev) => (prev + 1) % totalStoryPages);
 
   useEffect(() => {
     const el = statsRef.current;
@@ -71,6 +200,19 @@ export function HomeClient() {
       { root: null, threshold: 0.01, rootMargin: "-47% 0px -47% 0px" }
     );
     refs.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = teamRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        setTeamInView(entries[0].isIntersecting);
+      },
+      { threshold: 0.36 }
+    );
+    io.observe(el);
     return () => io.disconnect();
   }, []);
 
@@ -246,7 +388,140 @@ export function HomeClient() {
           </div>
         </section>
 
+        <section className="four-modules" aria-label="Platform modules">
+          <div className="four-modules-grid">
+            <article className="four-module-card key-features">
+              <h2>KEY FEATURES</h2>
+              <div className="feature-grid">
+                <div className="feature-card">
+                  <span className="feature-icon" aria-hidden="true">
+                    <Brain size={30} strokeWidth={1.5} />
+                  </span>
+                  <h3>AI-Powered Matching</h3>
+                  <p>Find the perfect projects faster with our smart algorithm.</p>
+                </div>
+                <div className="feature-card">
+                  <span className="feature-icon" aria-hidden="true">
+                    <UserCheck size={30} strokeWidth={1.5} />
+                  </span>
+                  <h3>Verified Experts</h3>
+                  <p>Work with a vetted community of top-tier AI professionals.</p>
+                </div>
+                <div className="feature-card">
+                  <span className="feature-icon" aria-hidden="true">
+                    <DollarSign size={30} strokeWidth={1.5} />
+                  </span>
+                  <h3>Secure Payments</h3>
+                  <p>Guaranteed, timely payouts for all completed milestones.</p>
+                </div>
+              </div>
+            </article>
+
+            <article className="four-module-card success-stories" aria-label="Success stories">
+              <h2>SUCCESS STORIES</h2>
+              <div className="stories-shell">
+                <button className="story-nav" aria-label="Previous story" type="button" onClick={goPrevStory}>
+                  <span aria-hidden="true">‹</span>
+                </button>
+                <div className="stories-grid">
+                  {visibleStories.map((story) => (
+                    <article className="story-card" key={`${story.name}-${story.role}`}>
+                      <img src={story.avatar} alt={story.name} className="story-avatar" />
+                      <div>
+                        <h3>
+                          {story.name} - {story.role}
+                        </h3>
+                        <p>{story.quote}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <button className="story-nav" aria-label="Next story" type="button" onClick={goNextStory}>
+                  <span aria-hidden="true">›</span>
+                </button>
+              </div>
+              <div className="story-dots" aria-hidden="true">
+                {Array.from({ length: totalStoryPages }).map((_, idx) => (
+                  <span key={idx} className={`dot ${idx === storyPage ? "active" : ""}`} />
+                ))}
+              </div>
+            </article>
+
+            <article className="four-module-card how-it-mini">
+              <h2>HOW IT WORKS</h2>
+              <div className="mini-steps">
+                <div className="mini-step">
+                  <span className="mini-icon" aria-hidden="true">
+                    <UserCheck size={26} strokeWidth={1.5} />
+                  </span>
+                  <p>1. Create Profile</p>
+                </div>
+                <div className="mini-step">
+                  <span className="mini-icon" aria-hidden="true">
+                    <ClipboardCheck size={26} strokeWidth={1.5} />
+                  </span>
+                  <p>2. Pass Assessment</p>
+                </div>
+                <div className="mini-step">
+                  <span className="mini-icon" aria-hidden="true">
+                    <Link2 size={26} strokeWidth={1.5} />
+                  </span>
+                  <p>3. Get Matched</p>
+                </div>
+                <div className="mini-step">
+                  <span className="mini-icon" aria-hidden="true">
+                    <Sparkles size={26} strokeWidth={1.5} />
+                  </span>
+                  <p>4. Start Earning</p>
+                </div>
+              </div>
+            </article>
+
+            <article className="four-module-card ready-start">
+              <h2>READY TO GET STARTED?</h2>
+              <div className="ready-shell">
+                <h3>Join the Future of AI Work Today</h3>
+                <p>Sign up now to access exclusive projects and elevate your career.</p>
+                <button className="ready-btn" type="button">
+                  Create Your Account
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <HowItWorks />
+
+        <section
+          className={`team-showcase ${teamInView ? "is-active" : ""}`}
+          id="team"
+          aria-label="Meet the team behind HireU"
+          ref={teamRef}
+        >
+          <h2 className="team-showcase-title">MEET THE TEAM BEHIND HIREU</h2>
+          <div className="team-fan" role="list">
+            {TEAM_MEMBERS.map((member) => {
+              const Icon = member.icon;
+              return (
+                <article
+                  key={member.name}
+                  className={`team-member-card ${member.tilt} ${member.featured ? "is-featured" : ""}`}
+                  role="listitem"
+                >
+                  <div className="team-member-avatar-wrap">
+                    <img src={member.avatar} alt={member.name} className="team-member-avatar" loading="lazy" />
+                  </div>
+                  <h3>{member.name}</h3>
+                  <span className="team-member-role">{member.role}</span>
+                  <p>{member.bio}</p>
+                  <span className="team-member-icon" aria-hidden="true">
+                    <Icon size={18} strokeWidth={2.1} />
+                  </span>
+                </article>
+              );
+            })}
+          </div>
+        </section>
 
         <section className="company-story" aria-label="About our company">
           <div className="company-story-sticky">
