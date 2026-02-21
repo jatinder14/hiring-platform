@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  RECRUITER
+  CANDIDATE
+}
+
+model User {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  email           String   @unique
+
+  name            String?
+  profileImageUrl String?
+  userRole        UserRole @default(CANDIDATE)
+  roleSelectedAt  DateTime?  // When set, user can no longer change role via updateUserRole
+  phoneNumber     String?
+  country         String?
+  state           String?
+  city            String?
+  linkedin        String?
+  github          String?
+  twitter         String?
+  currentCTC      String?
+  expectedCTC     String?
+  noticePeriod    String?
+  resumeUrl      String?   // Single CV per user (GCS URL); replaced on new upload
+  notificationNewApplications Boolean? @default(true)
+  notificationInterviewUpdates Boolean? @default(true)
+  notificationPlatformNews   Boolean? @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  jobs            Job[]              @relation("CompanyJobs")
+  applications    Application[]      @relation("CandidateApplications")
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  REJECTED
+  INTERVIEW
+  HIRED
+  WITHDRAWN
+}
+
+enum JobStatus {
+  DRAFT      // Not visible to candidates
+  ACTIVE     // Accepting applications
+  CLOSED     // No longer accepting applications
+  ARCHIVED   // Old/deleted jobs
+}
+
+model Job {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  company         String
+  location        String
+  description     String
+  employmentType  String        // e.g., FULL_TIME, REMOTE
+  category        String
+  skills          String[]
+  salary          String?       // e.g. "150,000"
+  currency        String?       // e.g. "USD"
+  experienceMin   Int?          // Min experience in years
+  experienceMax   Int?          // Max experience in years
+  
+  // 🔒 SECURITY: Company ownership (User id from NextAuth session)
+  companyId       String        @db.ObjectId
+  companyUser     User          @relation("CompanyJobs", fields: [companyId], references: [id])
+  
+  // 🔒 SECURITY: Job visibility control
+  status          JobStatus     @default(DRAFT)
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  applications    Application[]
+  
+  // Performance indexes
+  @@index([companyId])
+  @@index([status])
+  @@index([companyId, status])
+}
+
+model Application {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  jobId        String            @db.ObjectId
+  job          Job               @relation(fields: [jobId], references: [id])
+  candidateId  String            @db.ObjectId  // User id of the candidate (NextAuth)
+  candidate    User              @relation("CandidateApplications", fields: [candidateId], references: [id])
+  
+  // 🔒 SECURITY: Direct company link for efficient filtering & isolation
+  companyId    String            @db.ObjectId // User id of company (denormalized for security & performance)
+  
+  resumeUrl    String
+  motivation   String?
+  currentCTC   String?
+  expectedCTC  String?
+  currentCurrency  String?
+  expectedCurrency String?
+  noticePeriod String?
+  city         String?
+  status       ApplicationStatus @default(APPLIED)
+  appliedAt    DateTime          @default(now())
+  interviewScheduledAt DateTime?     // Dedicated field for scheduled interviews
+  
+  // Performance indexes
+  @@index([companyId])
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([companyId, status])
+  @@unique([jobId, candidateId])
+}

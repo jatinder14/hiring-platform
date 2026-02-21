@@ -7,6 +7,9 @@ package-lock.json
 # Vercel
 .vercel
 
+# GCS service account keys (never commit)
+.keys/
+
 # Environment
 .env
 .env.local
@@ -14,6 +17,8 @@ package-lock.json
 .env.test.local
 .env.production.local
 .env.*.local
+.env.cloudrun
+.env.cloudrun.yaml
 
 # Next.js
 .next/
@@ -53,3 +58,9 @@ pnpm-debug.log*
 .yarn
 .pnp
 .pnp.js
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# Chrome DevTools workspace (developer-local, not for VCS)
+public/.well-known/appspecific/com.chrome.devtools.json
