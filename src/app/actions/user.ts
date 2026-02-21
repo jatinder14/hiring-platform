@@ -20,15 +20,15 @@ export async function updateUserRole(role: "recruiter" | "candidate") {
 
     const existing = await prisma.user.findUnique({
         where: { id: userId },
-        select: { userRole: true },
+        select: { userRole: true, roleSelectedAt: true },
     });
 
     if (!existing) {
         throw new Error("User not found");
     }
 
-    // Prevent talent from becoming recruiter or vice versa
-    if (existing.userRole === UserRole.RECRUITER || existing.userRole === UserRole.CANDIDATE) {
+    // Allow role change only once (when roleSelectedAt is null, e.g. first sign-in without cookie)
+    if (existing.roleSelectedAt != null) {
         redirect("/dashboard");
         return;
     }
@@ -37,7 +37,7 @@ export async function updateUserRole(role: "recruiter" | "candidate") {
         const newRole = role === "recruiter" ? UserRole.RECRUITER : UserRole.CANDIDATE;
         await prisma.user.update({
             where: { id: userId },
-            data: { userRole: newRole },
+            data: { userRole: newRole, roleSelectedAt: new Date() },
         });
     } catch (error) {
         console.error("Failed to update user role:", error);

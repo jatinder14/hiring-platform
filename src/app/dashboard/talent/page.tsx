@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Plus, Briefcase, Users, Clock, FileText, Zap, Loader2 } from 'lucide-react';
 import { useRecruiterBasePath } from '@/components/RecruiterBasePathContext';
 
+type RecentActivityItem = { id: string; type: string; user: string; role: string; time: string };
+
 export default function CompanyDashboardPage() {
     const base = useRecruiterBasePath();
     const [isLoading, setIsLoading] = useState(true);
@@ -14,7 +16,7 @@ export default function CompanyDashboardPage() {
         totalApplications: 0,
         interviews: 0
     });
-    const [recentActivity, setRecentActivity] = useState<any[]>([]);
+    const [recentActivity, setRecentActivity] = useState<RecentActivityItem[]>([]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -25,7 +27,7 @@ export default function CompanyDashboardPage() {
                 const data = await res.json();
 
                 setStats(data.stats);
-                setRecentActivity(data.recentActivity);
+                setRecentActivity(Array.isArray(data.recentActivity) ? data.recentActivity : []);
 
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);

@@ -21,9 +21,19 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+type CompanyJobListItem = {
+    id: string;
+    title: string;
+    location: string;
+    type: string;
+    applicants: number;
+    status: string;
+    postedDate: string;
+};
+
 export default function ManageJobsPage() {
     const base = useRecruiterBasePath();
-    const [jobs, setJobs] = useState<any[]>([]);
+    const [jobs, setJobs] = useState<CompanyJobListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -34,8 +44,8 @@ export default function ManageJobsPage() {
             try {
                 const res = await fetch('/api/company/jobs');
                 if (res.ok) {
-                    const data = await res.json();
-                    setJobs(data);
+                    const data: CompanyJobListItem[] = await res.json();
+                    setJobs(Array.isArray(data) ? data : []);
                 }
             } catch (error) {
                 console.error('Failed to fetch jobs', error);

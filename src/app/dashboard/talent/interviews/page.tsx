@@ -14,8 +14,18 @@ import {
     VideoOff
 } from 'lucide-react';
 
+type InterviewListItem = {
+    id: string;
+    candidateName: string;
+    jobTitle: string;
+    date: string;
+    time: string;
+    type: string;
+    status: string;
+};
+
 export default function CompanyInterviewsPage() {
-    const [interviews, setInterviews] = useState<any[]>([]);
+    const [interviews, setInterviews] = useState<InterviewListItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -24,14 +34,14 @@ export default function CompanyInterviewsPage() {
                 const res = await fetch('/api/company/applications');
                 if (res.ok) {
                     const data = await res.json();
-                    type AppItem = { id: string; status: string; candidate?: { name?: string }; job?: { title?: string }; updatedAt: string };
+                    type AppItem = { id: string; status: string; candidate?: { name?: string }; job?: { title?: string }; updatedAt: string; interviewScheduledAt?: string | null };
                     const interviewApps = data.filter((app: AppItem) =>
                         ['Interview', 'INTERVIEW', 'Shortlisted', 'SHORTLISTED'].includes(app.status)
                     );
 
-                    const mappedInterviews = interviewApps.map((app: AppItem) => {
-                        const at = (app as { interviewScheduledAt?: string | null }).interviewScheduledAt
-                            ? new Date((app as { interviewScheduledAt: string }).interviewScheduledAt)
+                    const mappedInterviews: InterviewListItem[] = interviewApps.map((app: AppItem) => {
+                        const at = app.interviewScheduledAt
+                            ? new Date(app.interviewScheduledAt)
                             : null;
                         return {
                             id: app.id,

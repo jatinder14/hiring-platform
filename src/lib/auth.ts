@@ -45,6 +45,7 @@ export const authOptions: NextAuthOptions = {
                         name: user.name,
                         profileImageUrl: user.image,
                         userRole: initialRole,
+                        roleSelectedAt: roleCookie ? new Date() : undefined, // Lock role when chosen via cookie
                     },
                 });
 

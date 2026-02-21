@@ -43,8 +43,18 @@ export default function JobsPage() {
         setLoading(true);
         setError('');
         try {
+            const types: string[] = [];
+            if (filters.fullTime) types.push('Full-time');
+            if (filters.contract) types.push('Contract');
+            if (filters.internship) types.push('Internship');
+            const params = new URLSearchParams();
+            if (types.length > 0) params.set('employmentType', types.join(','));
+            if (filters.category !== 'All Categories') params.set('category', filters.category);
+            if (filters.skills?.trim()) params.set('skills', filters.skills.trim());
+
+            const jobsUrl = `/api/jobs${params.toString() ? `?${params.toString()}` : ''}`;
             const [jobsRes, appsRes] = await Promise.all([
-                fetch('/api/jobs'),
+                fetch(jobsUrl),
                 fetch('/api/applications')
             ]);
 
@@ -70,7 +80,7 @@ export default function JobsPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [filters.fullTime, filters.contract, filters.internship, filters.category, filters.skills]);
 
     const handleClearFilters = () => {
         setFilters({
@@ -82,26 +92,7 @@ export default function JobsPage() {
         });
     };
 
-    const filteredJobs = jobs.filter(job => {
-        // Employment Type Filter (OR Logic)
-        const activeTypes = [];
-        if (filters.fullTime) activeTypes.push('Full-time');
-        if (filters.contract) activeTypes.push('Contract');
-        if (filters.internship) activeTypes.push('Internship');
-
-        if (activeTypes.length > 0 && !activeTypes.includes(job.employmentType)) {
-            return false;
-        }
-
-        if (filters.category !== 'All Categories' && job.category !== filters.category) {
-            return false;
-        }
-
-        // Skill Filter (Simple text match)
-        if (filters.skills && !job.skills.some(skill => skill.toLowerCase().includes(filters.skills.toLowerCase()))) return false;
-
-        return true;
-    });
+    const filteredJobs = jobs;
 
     if (loading) {
         return (

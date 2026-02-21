@@ -28,6 +28,10 @@ export async function GET() {
                 currentCTC: true,
                 expectedCTC: true,
                 noticePeriod: true,
+                resumeUrl: true,
+                notificationNewApplications: true,
+                notificationInterviewUpdates: true,
+                notificationPlatformNews: true,
             }
         });
 
@@ -91,6 +95,13 @@ export async function PUT(req: Request) {
         const currentCTCVal = trim(data.currentCTC);
         const expectedCTCVal = trim(data.expectedCTC);
         const noticePeriodVal = trim(data.noticePeriod);
+        const resumeUrlVal = validUrl(data.resumeUrl) ?? (data.resumeUrl === '' ? '' : undefined);
+        if (resumeUrlVal === null) {
+            return NextResponse.json({ error: "Invalid resume URL: only http/https allowed" }, { status: 400 });
+        }
+        const notificationNewApplicationsVal = data.notificationNewApplications === true || data.notificationNewApplications === false ? data.notificationNewApplications : undefined;
+        const notificationInterviewUpdatesVal = data.notificationInterviewUpdates === true || data.notificationInterviewUpdates === false ? data.notificationInterviewUpdates : undefined;
+        const notificationPlatformNewsVal = data.notificationPlatformNews === true || data.notificationPlatformNews === false ? data.notificationPlatformNews : undefined;
 
         await prisma.user.update({
             where: { id: session.user.id },
@@ -106,7 +117,11 @@ export async function PUT(req: Request) {
                 ...(currentCTCVal !== undefined && { currentCTC: currentCTCVal }),
                 ...(expectedCTCVal !== undefined && { expectedCTC: expectedCTCVal }),
                 ...(noticePeriodVal !== undefined && { noticePeriod: noticePeriodVal }),
+                ...(resumeUrlVal !== undefined && { resumeUrl: resumeUrlVal || null }),
                 ...(profileImageUrlVal !== undefined && { profileImageUrl: profileImageUrlVal }),
+                ...(notificationNewApplicationsVal !== undefined && { notificationNewApplications: notificationNewApplicationsVal }),
+                ...(notificationInterviewUpdatesVal !== undefined && { notificationInterviewUpdates: notificationInterviewUpdatesVal }),
+                ...(notificationPlatformNewsVal !== undefined && { notificationPlatformNews: notificationPlatformNewsVal }),
             },
         });
 
@@ -126,6 +141,10 @@ export async function PUT(req: Request) {
                 currentCTC: true,
                 expectedCTC: true,
                 noticePeriod: true,
+                resumeUrl: true,
+                notificationNewApplications: true,
+                notificationInterviewUpdates: true,
+                notificationPlatformNews: true,
             }
         });
         return NextResponse.json(updatedUser!);

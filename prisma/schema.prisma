@@ -25,6 +25,7 @@ model User {
   name            String?
   profileImageUrl String?
   userRole        UserRole @default(CANDIDATE)
+  roleSelectedAt  DateTime?  // When set, user can no longer change role via updateUserRole
   phoneNumber     String?
   country         String?
   state           String?
@@ -35,6 +36,10 @@ model User {
   currentCTC      String?
   expectedCTC     String?
   noticePeriod    String?
+  resumeUrl      String?   // Single CV per user (GCS URL); replaced on new upload
+  notificationNewApplications Boolean? @default(true)
+  notificationInterviewUpdates Boolean? @default(true)
+  notificationPlatformNews   Boolean? @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   jobs            Job[]              @relation("CompanyJobs")

@@ -24,13 +24,8 @@ const LocationSelector = dynamic(() => import('@/components/dashboard/LocationSe
 });
 
 
-interface ResumeFile {
-    id: string;
-    name: string;
-    type: string;
-    url: string;
-    size: string;
-}
+const MAX_RESUME_MB = 5;
+const MAX_RESUME_BYTES = MAX_RESUME_MB * 1024 * 1024;
 
 const COUNTRIES = [
     // North America
@@ -146,7 +141,8 @@ export default function ProfilePage() {
 
     // Media States
     const [profileImage, setProfileImage] = useState<string | null>(null);
-    const [resumes, setResumes] = useState<ResumeFile[]>([]);
+    const [profileResumeUrl, setProfileResumeUrl] = useState<string | null>(null);
+    const [isUploadingResume, setIsUploadingResume] = useState(false);
 
     // UI States
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
@@ -180,6 +176,7 @@ export default function ProfilePage() {
                         setExpectedCTC(data.expectedCTC || '');
                         setNoticePeriod(data.noticePeriod || 'Immediate');
                         setProfileImage(data.profileImageUrl || session?.user?.image || null);
+                        setProfileResumeUrl(data.resumeUrl || null);
                     }
                 } catch (error) {
                     console.error("Failed to load profile", error);
@@ -211,22 +208,50 @@ export default function ProfilePage() {
         }
     };
 
-    const handleResumeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (files) {
-            const newResumes: ResumeFile[] = Array.from(files).map(file => ({
-                id: Math.random().toString(36).substr(2, 9),
-                name: file.name,
-                type: file.type,
-                size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-                url: URL.createObjectURL(file)
-            }));
-            setResumes(prev => [...prev, ...newResumes]);
+    const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.type !== 'application/pdf') {
+            toast.error('Only PDF files are allowed.');
+            return;
+        }
+        if (file.size > MAX_RESUME_BYTES) {
+            toast.error(`File must be under ${MAX_RESUME_MB}MB.`);
+            return;
+        }
+        setIsUploadingResume(true);
+        try {
+            const formData = new FormData();
+            formData.set('file', file);
+            const res = await fetch('/api/upload/resume', { method: 'POST', body: formData });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Upload failed');
+            }
+            const data = await res.json();
+            setProfileResumeUrl(data.resumeUrl ?? null);
+            toast.success('Resume updated. Your profile CV is replaced.');
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to upload resume.');
+        } finally {
+            setIsUploadingResume(false);
+            e.target.value = '';
         }
     };
 
-    const deleteResume = (id: string) => {
-        setResumes(prev => prev.filter(r => r.id !== id));
+    const removeResume = async () => {
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ resumeUrl: '' }),
+            });
+            if (!res.ok) throw new Error('Failed to remove');
+            setProfileResumeUrl(null);
+            toast.success('Resume removed.');
+        } catch {
+            toast.error('Failed to remove resume.');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -541,59 +566,40 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* Resume Upload Section */}
+                    {/* Resume / CV — one per user, stored in GCS; new upload replaces old */}
                     <div className="section-title mt-8">Resume / CV</div>
-
-                    {/* Resume List */}
-                    {resumes.length > 0 && (
-                        <div className="resume-list">
-                            {resumes.map((file) => (
-                                <div key={file.id} className="resume-item">
-                                    <div className="file-info">
-                                        {file.type.includes('image') ? (
-                                            <ImageIcon size={24} className="text-primary" />
-                                        ) : (
-                                            <FileText size={24} className="text-danger" />
-                                        )}
-                                        <div className="file-details">
-                                            <h4>{file.name}</h4>
-                                            <p>{file.size}</p>
-                                        </div>
-                                    </div>
-                                    <div className="resume-actions">
-                                        <button
-                                            type="button"
-                                            className="action-btn view"
-                                            title="View Resume"
-                                            onClick={() => window.open(file.url, '_blank')}
-                                        >
-                                            <Eye size={18} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="action-btn delete"
-                                            title="Delete Resume"
-                                            onClick={() => deleteResume(file.id)}
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
+                    {profileResumeUrl ? (
+                        <div className="resume-list" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                            <div className="file-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <FileText size={24} className="text-primary" />
+                                <div>
+                                    <span className="font-semibold">Current CV</span>
+                                    <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Stored in your profile</p>
                                 </div>
-                            ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <a href={profileResumeUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', textDecoration: 'none' }}>
+                                    <Eye size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> View
+                                </a>
+                                <button type="button" className="action-btn delete" title="Remove CV" onClick={removeResume} style={{ padding: '8px 16px' }}>
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </div>
-                    )}
-
-                    <div className="resume-upload-area" onClick={() => resumeInputRef.current?.click()}>
+                    ) : null}
+                    <div className="resume-upload-area" onClick={() => !isUploadingResume && resumeInputRef.current?.click()} style={{ cursor: isUploadingResume ? 'wait' : 'pointer', opacity: isUploadingResume ? 0.7 : 1 }}>
                         <UploadCloud size={48} className="text-muted" style={{ margin: '0 auto 16px' }} />
-                        <h3 className="font-bold" style={{ fontSize: '16px', color: '#374151', marginBottom: '8px' }}>Click to upload or drag and drop</h3>
-                        <p className="text-muted" style={{ fontSize: '14px' }}>PDF, DOCX, JPG or PNG (MAX. 5MB). Multiple allowed.</p>
+                        <h3 className="font-bold" style={{ fontSize: '16px', color: '#374151', marginBottom: '8px' }}>
+                            {isUploadingResume ? 'Uploading…' : 'Upload PDF resume'}
+                        </h3>
+                        <p className="text-muted" style={{ fontSize: '14px' }}>PDF only, max {MAX_RESUME_MB}MB. One CV per profile — new upload replaces the previous.</p>
                         <input
                             type="file"
                             ref={resumeInputRef}
                             hidden
-                            multiple
-                            accept=".pdf,image/*"
+                            accept=".pdf,application/pdf"
                             onChange={handleResumeUpload}
+                            disabled={isUploadingResume}
                         />
                     </div>
 

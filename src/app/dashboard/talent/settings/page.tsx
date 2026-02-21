@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     User,
     Building2,
@@ -12,15 +12,58 @@ import {
     Save,
     Upload
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const NOTIFICATION_KEYS = ['newApplications', 'interviewUpdates', 'platformNews'] as const;
-
 export default function CompanySettingsPage() {
     const [notifications, setNotifications] = useState<Record<string, boolean>>({
         newApplications: true,
         interviewUpdates: true,
         platformNews: true,
     });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetch('/api/profile');
+                if (res.ok) {
+                    const data = await res.json();
+                    setNotifications({
+                        newApplications: data.notificationNewApplications !== false,
+                        interviewUpdates: data.notificationInterviewUpdates !== false,
+                        platformNews: data.notificationPlatformNews !== false,
+                    });
+                }
+            } catch {
+                toast.error('Failed to load settings');
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, []);
+
+    const handleNotificationToggle = async (key: string, next: boolean) => {
+        const apiKey = key === 'newApplications' ? 'notificationNewApplications' : key === 'interviewUpdates' ? 'notificationInterviewUpdates' : 'notificationPlatformNews';
+        setNotifications(prev => ({ ...prev, [key]: next }));
+        setSaving(true);
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [apiKey]: next }),
+            });
+            if (!res.ok) throw new Error('Save failed');
+            toast.success('Preferences saved');
+        } catch {
+            setNotifications(prev => ({ ...prev, [key]: !next }));
+            toast.error('Failed to save preferences');
+        } finally {
+            setSaving(false);
+        }
+    };
     return (
         <div className="dashboard-page-content">
             {/* Header */}
@@ -110,7 +153,7 @@ export default function CompanySettingsPage() {
                                             role="switch"
                                             aria-checked={on}
                                             aria-label={`Toggle ${item.title}`}
-                                            onClick={() => setNotifications((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
+                                            onClick={() => handleNotificationToggle(item.key, !(notifications[item.key] ?? true))}
                                             style={{
                                                 width: '44px',
                                                 height: '24px',

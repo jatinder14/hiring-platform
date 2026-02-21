@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-    Briefcase, MapPin, DollarSign, UploadCloud,
+    Briefcase, MapPin, DollarSign,
     ChevronLeft, CheckCircle, FileText, Loader2, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -61,9 +61,8 @@ export default function ApplyPage() {
     const [isFetching, setIsFetching] = useState(true);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [resume, setResume] = useState<File | null>(null);
     const [resumeLink, setResumeLink] = useState('');
-    const [submissionType, setSubmissionType] = useState<'upload' | 'link'>('upload');
+    const [profileResumeUrl, setProfileResumeUrl] = useState<string | null>(null);
     const [motivationData, setMotivationData] = useState<string>('');
     const [fetchError, setFetchError] = useState('');
 
@@ -153,15 +152,28 @@ export default function ApplyPage() {
         fetchJob();
     }, [params?.id]);
 
+    // Fetch profile to offer "Use my profile CV" (GCS-stored resume)
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const res = await fetch('/api/profile');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.resumeUrl) {
+                        setProfileResumeUrl(data.resumeUrl);
+                        setResumeLink(prev => prev || data.resumeUrl);
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        };
+        fetchProfile();
+    }, []);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setResume(e.target.files[0]);
-        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -177,22 +189,12 @@ export default function ApplyPage() {
         setIsSubmitting(true);
 
         try {
-            // Determine Resume URL
-            let finalResumeUrl = '';
-
-            if (submissionType === 'link') {
-                if (!resumeLink || (!resumeLink.startsWith('http://') && !resumeLink.startsWith('https://'))) {
-                    toast.error("Please enter a valid HTTP/HTTPS resume link");
-                    setIsSubmitting(false);
-                    return;
-                }
-                finalResumeUrl = resumeLink;
-            } else {
-                // Resume upload not yet implemented - require link to avoid submitting fake URLs
-                toast.error("Resume upload is not available yet. Please use 'Paste a link' and provide a URL to your resume (e.g. Google Drive, Dropbox).");
+            if (!resumeLink?.trim() || (!resumeLink.startsWith('http://') && !resumeLink.startsWith('https://'))) {
+                toast.error("Please enter a valid HTTP/HTTPS resume link (e.g. Google Drive, Dropbox).");
                 setIsSubmitting(false);
                 return;
             }
+            const finalResumeUrl = resumeLink.trim();
 
             const response = await fetch('/api/applications', {
                 method: 'POST',
@@ -207,14 +209,14 @@ export default function ApplyPage() {
 
             if (response.ok) {
                 // Update local storage for demo purposes (Applied state on Jobs list)
-                const applied = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
+                const applied: string[] = JSON.parse(localStorage.getItem('applied_jobs') || '[]');
                 if (!applied.includes(jobId)) {
                     applied.push(jobId);
                     localStorage.setItem('applied_jobs', JSON.stringify(applied));
                 }
 
                 // Also update the detailed applications list for the demo
-                const fullApps = JSON.parse(localStorage.getItem('user_applications') || '[]');
+                const fullApps: { id: string; jobId: string; jobTitle: string; company: string; appliedAt: string; status: string; logo: string }[] = JSON.parse(localStorage.getItem('user_applications') || '[]');
                 const newApp = {
                     id: Math.random().toString(36).substr(2, 9),
                     jobId: jobId,
@@ -342,62 +344,28 @@ export default function ApplyPage() {
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label className="form-label">Resume / CV</label>
-
-                                {submissionType === 'upload' ? (
-                                    <>
-                                        <div
-                                            className="resume-upload-area hover:bg-gray-50 transition-colors"
-                                            style={{
-                                                padding: '32px',
-                                                border: '2px dashed #e5e7eb',
-                                                borderRadius: '12px',
-                                                cursor: 'pointer',
-                                                textAlign: 'center',
-                                                backgroundColor: '#ffffff'
-                                            }}
-                                            onClick={() => document.getElementById('resume-upload')?.click()}
-                                        >
-                                            <div className="mx-auto w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-3">
-                                                <UploadCloud size={24} className="text-blue-500" />
-                                            </div>
-                                            {resume ? (
-                                                <div className="flex items-center gap-2 justify-center text-blue-600 font-medium">
-                                                    <FileText size={16} /> {resume.name}
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <p className="text-sm font-medium text-gray-700">Click to upload PDF</p>
-                                                    <p className="text-xs text-gray-500 mt-1">Max file size 5MB</p>
-                                                </>
-                                            )}
-                                            <input
-                                                type="file"
-                                                id="resume-upload"
-                                                hidden
-                                                accept=".pdf"
-                                                onChange={handleFileChange}
-                                                required={submissionType === 'upload'}
-                                            />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div>
-                                        <input
-                                            type="url"
-                                            className="form-input"
-                                            placeholder="https://drive.google.com/..."
-                                            value={resumeLink}
-                                            onChange={(e) => setResumeLink(e.target.value)}
-                                            required={submissionType === 'link'}
-                                            autoFocus
-                                        />
-                                        <div className="mt-2">
-                                            <p className="text-xs text-gray-500">
-                                                Paste a public link to your resume
-                                            </p>
-                                        </div>
-                                    </div>
+                                {profileResumeUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setResumeLink(profileResumeUrl!)}
+                                        className="btn-secondary"
+                                        style={{ marginBottom: '8px', fontSize: '13px' }}
+                                    >
+                                        Use my profile CV
+                                    </button>
                                 )}
+                                <input
+                                    type="url"
+                                    className="form-input"
+                                    placeholder="https://... or use profile CV above"
+                                    value={resumeLink}
+                                    onChange={(e) => setResumeLink(e.target.value)}
+                                    required
+                                    autoFocus
+                                />
+                                <p className="mt-2 text-xs text-gray-500">
+                                    Use your profile CV (uploaded in Profile) or paste a public link (e.g. Google Drive, Dropbox).
+                                </p>
                             </div>
 
                             <div className="form-group">

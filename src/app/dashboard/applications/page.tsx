@@ -35,8 +35,19 @@ const getStatusBadge = (status: string) => {
     }
 };
 
+export type ApplicationListItem = {
+    id: string;
+    jobTitle: string;
+    company: string;
+    appliedDate: string;
+    status: string;
+    experienceMin?: number | null;
+    experienceMax?: number | null;
+    logo: string;
+};
+
 export default function ApplicationsPage() {
-    const [applications, setApplications] = useState<any[]>([]);
+    const [applications, setApplications] = useState<ApplicationListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
@@ -50,8 +61,8 @@ export default function ApplicationsPage() {
 
             const data = await res.json();
 
-            type AppItem = { id: string; job: { title: string; company: string; experienceMin?: number | null; experienceMax?: number | null }; appliedAt: string; status: string };
-            const mappedApps = data.map((app: AppItem) => ({
+            type ApiApp = { id: string; job: { title: string; company: string; experienceMin?: number | null; experienceMax?: number | null }; appliedAt: string; status: string };
+            const mappedApps: ApplicationListItem[] = data.map((app: ApiApp) => ({
                 id: app.id,
                 jobTitle: app.job.title,
                 company: app.job.company,
@@ -159,10 +170,14 @@ export default function ApplicationsPage() {
                                         <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{app.jobTitle}</h3>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#6b7280', fontSize: '14px', flexWrap: 'wrap' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Briefcase size={14} /> {app.company}</span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedAt || app.appliedDate).toLocaleDateString()}</span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Applied on {new Date(app.appliedDate).toLocaleDateString()}</span>
                                             {(app.experienceMin != null || app.experienceMax != null) && (
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                                    {app.experienceMin ?? '?'}-{app.experienceMax ?? '?'} Yrs Exp Required
+                                                    {app.experienceMin != null && app.experienceMax != null
+                                                        ? `${app.experienceMin} - ${app.experienceMax}`
+                                                        : app.experienceMin != null
+                                                            ? `At least ${app.experienceMin}`
+                                                            : `Up to ${app.experienceMax}`} Yrs Exp
                                                 </span>
                                             )}
                                         </div>
