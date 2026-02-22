@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 const navLinks = [
-  { href: "#story", label: "For Companies" },
-  { href: "#story", label: "For Talents" },
-  { href: "#story", label: "Success Stories" },
-  { href: "#story", label: "Blogs" },
-  { href: "#story", label: "Pricing" },
-  { href: "#story", label: "Contact" },
+  { href: "#companies", label: "For Companies" },
+  { href: "#talents", label: "For Talents" },
+  { href: "#success-stories", label: "Success Stories" },
+  { href: "#blogs", label: "Blogs" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#contact", label: "Contact" },
 ];
 
 export function HeroNav() {
@@ -34,12 +35,12 @@ export function HeroNav() {
         </nav>
 
         <div className="hn-actions">
-          <button className="hn-btn ghost" type="button">
+          <Link href="/recruiter/register" className="hn-btn ghost" role="button" aria-label="Hire a Talent">
             Hire a Talent
-          </button>
-          <button className="hn-btn" type="button" onClick={scrollToStory}>
+          </Link>
+          <Link href="/job-seeker/register" className="hn-btn" role="button" aria-label="Find a Job">
             Find a Job
-          </button>
+          </Link>
         </div>
 
         <button
@@ -63,12 +64,24 @@ export function HeroNav() {
           </a>
         ))}
         <div className="hn-drawer-actions">
-          <button className="hn-btn ghost" type="button">
+          <Link
+            href="/recruiter/register"
+            className="hn-btn ghost"
+            role="button"
+            aria-label="Hire a Talent"
+            onClick={() => setDrawerOpen(false)}
+          >
             Hire a Talent
-          </button>
-          <button className="hn-btn" type="button" onClick={() => { scrollToStory(); setDrawerOpen(false); }}>
+          </Link>
+          <Link
+            href="/job-seeker/register"
+            className="hn-btn"
+            role="button"
+            aria-label="Find a Job"
+            onClick={() => setDrawerOpen(false)}
+          >
             Find a Job
-          </button>
+          </Link>
         </div>
       </div>
     </header>

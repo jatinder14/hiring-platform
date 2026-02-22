@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 
 type Refs = {
-  heroRef: React.RefObject<HTMLDivElement | null>;
-  storyRef: React.RefObject<HTMLDivElement | null>;
-  msg2Ref: React.RefObject<HTMLDivElement | null>;
-  exitTriggerRef: React.RefObject<HTMLDivElement | null>;
+  heroRef: React.RefObject<HTMLElement | null>;
+  storyRef: React.RefObject<HTMLElement | null>;
+  msg2Ref: React.RefObject<HTMLElement | null>;
+  exitTriggerRef: React.RefObject<HTMLElement | null>;
 };
 
 export function FlowController({ heroRef, storyRef, msg2Ref, exitTriggerRef }: Refs) {
@@ -26,11 +26,20 @@ export function FlowController({ heroRef, storyRef, msg2Ref, exitTriggerRef }: R
     );
     unsubHero.observe(hero);
 
+    let inStory = false;
+    let brightTree = false;
+    let suppressTree = false;
+
+    const syncTreeClasses = () => {
+      document.body.classList.toggle("tree-on", inStory && !suppressTree);
+      document.body.classList.toggle("tree-bright", inStory && brightTree && !suppressTree);
+      document.body.classList.toggle("tree-exit", suppressTree);
+    };
+
     const unsubStory = new IntersectionObserver(
       (entries) => {
-        const inStory = entries[0].isIntersecting;
-        document.body.classList.toggle("tree-on", inStory);
-        if (!inStory) document.body.classList.remove("tree-exit", "tree-bright");
+        inStory = entries[0].isIntersecting;
+        syncTreeClasses();
       },
       { threshold: 0.01 }
     );
@@ -39,7 +48,10 @@ export function FlowController({ heroRef, storyRef, msg2Ref, exitTriggerRef }: R
     let unsubMsg2: IntersectionObserver | null = null;
     if (msg2) {
       unsubMsg2 = new IntersectionObserver(
-        (entries) => document.body.classList.toggle("tree-bright", entries[0].isIntersecting),
+        (entries) => {
+          brightTree = entries[0].isIntersecting;
+          syncTreeClasses();
+        },
         { threshold: 0.55 }
       );
       unsubMsg2.observe(msg2);
@@ -48,7 +60,13 @@ export function FlowController({ heroRef, storyRef, msg2Ref, exitTriggerRef }: R
     let unsubExit: IntersectionObserver | null = null;
     if (exitTrigger) {
       unsubExit = new IntersectionObserver(
-        (entries) => document.body.classList.toggle("tree-exit", entries[0].isIntersecting),
+        (entries) => {
+          const e = entries[0];
+          const thresholdY = window.innerHeight * 0.55;
+          // Once user reaches the exit trigger area, suppress tree-on/tree-bright states.
+          suppressTree = e.isIntersecting || e.boundingClientRect.top <= thresholdY;
+          syncTreeClasses();
+        },
         { threshold: 0.55 }
       );
       unsubExit.observe(exitTrigger);
