@@ -18,11 +18,11 @@ import {
   Brain,
   Handshake,
   MessageCircle,
-  DollarSign,
   UserCheck,
   Sparkles,
   ClipboardCheck,
   Link2,
+  CircleDollarSign,
 } from "lucide-react";
 
 const HireU = dynamic(() => import("@/components/HireU").then((m) => ({ default: m.HireU })), { ssr: true });
@@ -392,24 +392,30 @@ export function HomeClient() {
           <div className="four-modules-grid">
             <article className="four-module-card key-features">
               <h2>KEY FEATURES</h2>
-              <div className="feature-grid">
-                <div className="feature-card">
-                  <span className="feature-icon" aria-hidden="true">
-                    <Brain size={30} strokeWidth={1.5} />
+              <div className="feature-grid feature-grid-compact">
+                <div className="feature-card feature-card-compact">
+                  <span className="feature-icon feature-icon-compact feature-icon-image" aria-hidden="true">
+                    <img
+                      src="https://www.dartschool.be/wp-content/uploads/brein_darts.png"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                    />
                   </span>
                   <h3>AI-Powered Matching</h3>
                   <p>Find the perfect projects faster with our smart algorithm.</p>
                 </div>
-                <div className="feature-card">
-                  <span className="feature-icon" aria-hidden="true">
-                    <UserCheck size={30} strokeWidth={1.5} />
+                <div className="feature-card feature-card-compact">
+                  <span className="feature-icon feature-icon-compact feature-icon-brain-ring" aria-hidden="true">
+                    <Handshake size={30} strokeWidth={1.5} />
                   </span>
                   <h3>Verified Experts</h3>
                   <p>Work with a vetted community of top-tier AI professionals.</p>
                 </div>
-                <div className="feature-card">
-                  <span className="feature-icon" aria-hidden="true">
-                    <DollarSign size={30} strokeWidth={1.5} />
+                <div className="feature-card feature-card-compact">
+                  <span className="feature-icon feature-icon-compact feature-icon-brain-ring" aria-hidden="true">
+                    <CircleDollarSign size={30} strokeWidth={1.8} />
                   </span>
                   <h3>Secure Payments</h3>
                   <p>Guaranteed, timely payouts for all completed milestones.</p>
@@ -482,9 +488,14 @@ export function HomeClient() {
               <div className="ready-shell">
                 <h3>Join the Future of AI Work Today</h3>
                 <p>Sign up now to access exclusive projects and elevate your career.</p>
-                <button className="ready-btn" type="button">
-                  Create Your Account
-                </button>
+                <div className="ready-actions">
+                  <button className="ready-btn" type="button">
+                    Hire a Talent
+                  </button>
+                  <button className="ready-btn" type="button">
+                    Get a Job
+                  </button>
+                </div>
               </div>
             </article>
           </div>
