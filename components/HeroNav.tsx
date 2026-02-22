@@ -6,7 +6,7 @@ import { useState } from "react";
 const navLinks = [
   { href: "#story", label: "For Companies" },
   { href: "#story", label: "For Talents" },
-  { href: "#story", label: "Success Stories" },
+  { href: "#success-stories", label: "Success Stories" },
   { href: "#story", label: "Blogs" },
   { href: "#story", label: "Pricing" },
   { href: "#story", label: "Contact" },
@@ -71,9 +71,11 @@ export function HeroNav() {
           <button className="hn-btn ghost" type="button">
             Hire a Talent
           </button>
-          <button className="hn-btn" type="button" onClick={() => { scrollToStory(); setDrawerOpen(false); }}>
-            Find a Job
-          </button>
+          <Link href="/job-seeker/register">
+            <button className="hn-btn" type="button" onClick={() => setDrawerOpen(false)}>
+              Find a Job
+            </button>
+          </Link>
         </div>
       </div>
     </header>

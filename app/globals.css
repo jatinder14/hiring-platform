@@ -3673,3 +3673,282 @@ body.tree-exit .network-node {
     height: 0;
   }
 }
+
+/* Replaces old 3-step pathway cards with a single hero module */
+.pw-hero-shell {
+  width: min(1280px, calc(100vw - 32px));
+  margin: 86px auto 28px;
+  padding: 0;
+  border-radius: 28px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  position: relative;
+  overflow: visible;
+}
+
+.pw-hero-panel {
+  position: relative;
+  border-radius: 28px;
+  min-height: min(72vh, 620px);
+  display: grid;
+  place-items: center;
+  padding: clamp(26px, 4vw, 46px) 18px;
+  border: 1px solid rgba(122, 220, 229, 0.22);
+  background: transparent;
+  box-shadow:
+    0 20px 64px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(200, 248, 252, 0.04);
+  overflow: hidden;
+}
+
+.pw-hero-panel::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 28% at 24% 30%, rgba(65, 220, 230, 0.24), rgba(0, 0, 0, 0) 72%),
+    radial-gradient(42% 30% at 76% 28%, rgba(59, 196, 206, 0.22), rgba(0, 0, 0, 0) 73%),
+    radial-gradient(52% 34% at 54% 72%, rgba(0, 232, 255, 0.2), rgba(0, 0, 0, 0) 70%);
+  filter: blur(44px) saturate(1.2);
+  opacity: 0.9;
+  animation: pwSmokeFloat 11s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.pw-hero-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(4, 10, 16, 0.14), rgba(2, 7, 12, 0.22));
+  z-index: 1;
+}
+
+.pw-hero-smoke {
+  position: absolute;
+  inset: -16%;
+  pointer-events: none;
+  background:
+    radial-gradient(34% 22% at 18% 34%, rgba(96, 236, 245, 0.26), rgba(0, 0, 0, 0) 72%),
+    radial-gradient(36% 24% at 84% 36%, rgba(81, 214, 225, 0.24), rgba(0, 0, 0, 0) 73%),
+    radial-gradient(42% 24% at 50% 80%, rgba(0, 236, 255, 0.22), rgba(0, 0, 0, 0) 70%);
+  filter: blur(52px) saturate(1.22);
+  opacity: 0.95;
+  mix-blend-mode: screen;
+  animation: pwSmokeFloat 9s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.pw-badges {
+  position: absolute;
+  top: clamp(18px, 2.2vw, 30px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(144, 224, 231, 0.26);
+  background: rgba(14, 28, 36, 0.46);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 16px rgba(90, 190, 200, 0.08);
+  z-index: 3;
+}
+
+.pw-badges span {
+  font-size: 12px;
+  color: rgba(230, 249, 252, 0.92);
+  white-space: nowrap;
+}
+
+.pw-badges span + span::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 8px 2px 0;
+  border-radius: 999px;
+  background: rgba(146, 234, 242, 0.5);
+  vertical-align: middle;
+}
+
+.pw-hero-copy {
+  position: relative;
+  z-index: 3;
+  width: min(920px, 92%);
+  text-align: center;
+  margin-top: 26px;
+}
+
+.pw-hero-copy h1 {
+  margin: 0;
+  font-size: clamp(38px, 6.2vw, 78px);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-weight: 1000;
+  color: #f4fbff;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.75),
+    0 0 20px rgba(255, 255, 255, 0.07);
+}
+
+.pw-hero-copy p {
+  margin: 18px auto 0;
+  width: min(720px, 100%);
+  color: rgba(222, 242, 247, 0.9);
+  font-size: clamp(15px, 1.6vw, 22px);
+  line-height: 1.45;
+}
+
+.pw-hero-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pw-cta-btn {
+  min-width: 188px;
+  text-align: center;
+  text-decoration: none;
+  color: #eafcff;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(129, 222, 230, 0.36);
+  background:
+    linear-gradient(180deg, rgba(21, 59, 71, 0.82), rgba(8, 24, 32, 0.94)),
+    radial-gradient(120% 140% at 50% 0%, rgba(95, 227, 236, 0.12), rgba(0, 0, 0, 0) 70%);
+  box-shadow:
+    inset 0 1px 0 rgba(237, 253, 255, 0.16),
+    0 10px 22px rgba(0, 0, 0, 0.36),
+    0 0 18px rgba(74, 215, 227, 0.12);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.pw-cta-btn.ghost {
+  background:
+    linear-gradient(180deg, rgba(18, 43, 53, 0.7), rgba(6, 18, 24, 0.92)),
+    radial-gradient(120% 140% at 50% 0%, rgba(95, 227, 236, 0.08), rgba(0, 0, 0, 0) 70%);
+}
+
+.pw-cta-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(153, 237, 245, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(237, 253, 255, 0.22),
+    0 12px 24px rgba(0, 0, 0, 0.42),
+    0 0 20px rgba(96, 228, 239, 0.18);
+}
+
+.pw-cta-btn:focus-visible {
+  outline: 2px solid rgba(165, 241, 248, 0.92);
+  outline-offset: 3px;
+}
+
+.pw-hero-star {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  z-index: 3;
+  color: rgba(242, 251, 255, 0.9);
+  font-size: 26px;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(179, 243, 248, 0.35);
+}
+
+@keyframes pwSmokeFloat {
+  from {
+    transform: translate3d(0, -8px, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(0, 10px, 0) scale(1.07);
+  }
+}
+
+@media (max-width: 900px) {
+  .pw-hero-shell {
+    margin-top: 82px;
+  }
+
+  .pw-hero-panel {
+    min-height: 520px;
+  }
+
+  .pw-badges {
+    width: calc(100% - 28px);
+  }
+
+  .pw-badges span {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 560px) {
+  .pw-hero-shell {
+    width: calc(100vw - 14px);
+    margin-top: 72px;
+    border-radius: 18px;
+  }
+
+  .pw-hero-panel {
+    border-radius: 18px;
+    min-height: 460px;
+    padding: 22px 12px 20px;
+  }
+
+  .pw-badges {
+    top: 12px;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .pw-badges span {
+    font-size: 10px;
+  }
+
+  .pw-badges span + span::before {
+    margin-right: 6px;
+  }
+
+  .pw-hero-copy {
+    width: 96%;
+    margin-top: 34px;
+  }
+
+  .pw-hero-copy h1 {
+    font-size: clamp(26px, 10vw, 42px);
+    line-height: 0.98;
+  }
+
+  .pw-hero-copy p {
+    margin-top: 14px;
+    font-size: 13px;
+  }
+
+  .pw-hero-actions {
+    gap: 10px;
+  }
+
+  .pw-cta-btn {
+    min-width: 160px;
+    padding: 11px 14px;
+    font-size: 13px;
+  }
+
+  .pw-hero-star {
+    right: 10px;
+    bottom: 8px;
+    font-size: 20px;
+  }
+}

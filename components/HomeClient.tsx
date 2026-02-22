@@ -423,7 +423,7 @@ export function HomeClient() {
               </div>
             </article>
 
-            <article className="four-module-card success-stories" aria-label="Success stories">
+            <article id="success-stories" className="four-module-card success-stories" aria-label="Success stories">
               <h2>SUCCESS STORIES</h2>
               <div className="stories-shell">
                 <button className="story-nav" aria-label="Previous story" type="button" onClick={goPrevStory}>
