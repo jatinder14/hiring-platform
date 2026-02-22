@@ -1,0 +1,330 @@
+{
+  "info": {
+    "name": "HireU / Talent Platform API",
+    "description": "REST API for jobs, applications, profile, and company dashboard. Uses NextAuth session cookie for protected routes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "sessionToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jobId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "applicationId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "Utility",
+      "item": [
+        {
+          "name": "Hello",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/hello",
+            "description": "Health check, no auth required."
+          }
+        },
+        {
+          "name": "Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/test",
+            "description": "Test route, no auth required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "List jobs (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs?employmentType=&category=&skills=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs"],
+              "query": [
+                { "key": "employmentType", "value": "", "description": "e.g. Full-time,Contract" },
+                { "key": "category", "value": "", "description": "e.g. Engineering" },
+                { "key": "skills", "value": "", "description": "Substring match" }
+              ]
+            },
+            "description": "Returns ACTIVE jobs. No auth required."
+          }
+        },
+        {
+          "name": "Get job by ID (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}",
+            "description": "Get job details. Use jobId from list or set variable."
+          }
+        },
+        {
+          "name": "Create job (recruiter)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Engineer\",\n  \"company\": \"Acme Inc\",\n  \"location\": \"Remote\",\n  \"description\": \"We are looking for...\",\n  \"employmentType\": \"Full-time\",\n  \"category\": \"Engineering\",\n  \"skills\": [\"React\", \"Node.js\"],\n  \"salary\": \"120000\",\n  \"currency\": \"USD\",\n  \"status\": \"ACTIVE\",\n  \"experienceMin\": 3,\n  \"experienceMax\": 6\n}"
+            },
+            "url": "{{baseUrl}}/api/jobs",
+            "description": "Recruiter only. Requires session."
+          }
+        },
+        {
+          "name": "List applications for job (recruiter)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/jobs/{{jobId}}/applications",
+            "description": "Recruiter, own job only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Company",
+      "item": [
+        {
+          "name": "List company jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/company/jobs",
+            "description": "Recruiter only."
+          }
+        },
+        {
+          "name": "Get company job by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/company/jobs/{{jobId}}",
+            "description": "Recruiter, own job only."
+          }
+        },
+        {
+          "name": "Update job",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Engineer (Updated)\",\n  \"location\": \"Remote\",\n  \"description\": \"Updated description\",\n  \"employmentType\": \"Full-time\",\n  \"category\": \"Engineering\",\n  \"skills\": [\"React\", \"Node.js\", \"TypeScript\"],\n  \"salary\": \"130000\",\n  \"currency\": \"USD\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/company/jobs/{{jobId}}",
+            "description": "Recruiter, own job only."
+          }
+        },
+        {
+          "name": "Delete job",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/company/jobs/{{jobId}}",
+            "description": "Recruiter, own job only. Deletes job and its applications."
+          }
+        },
+        {
+          "name": "List company applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/applications?status=&fromDate=&toDate=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "company", "applications"],
+              "query": [
+                { "key": "status", "value": "", "description": "Active | Inactive | Withdrawn" },
+                { "key": "fromDate", "value": "", "description": "YYYY-MM-DD" },
+                { "key": "toDate", "value": "", "description": "YYYY-MM-DD" }
+              ]
+            },
+            "description": "Recruiter only. Paginated (50)."
+          }
+        },
+        {
+          "name": "Get application by ID (company)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/company/applications/{{applicationId}}",
+            "description": "Recruiter, own company only. Returns application with job and candidate."
+          }
+        },
+        {
+          "name": "Update application status (company)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SHORTLISTED\",\n  \"interviewScheduledAt\": \"2025-03-01T14:00:00.000Z\"\n}"
+            },
+            "url": "{{baseUrl}}/api/company/applications/{{applicationId}}",
+            "description": "Recruiter. status: APPLIED | SHORTLISTED | REJECTED | INTERVIEW | HIRED."
+          }
+        },
+        {
+          "name": "Dashboard stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/company/dashboard-stats",
+            "description": "Recruiter only. Stats and recent activity."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications (candidate)",
+      "item": [
+        {
+          "name": "List my applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/applications",
+            "description": "Candidate only. Lists applications with job info."
+          }
+        },
+        {
+          "name": "Submit application",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{jobId}}\",\n  \"resumeUrl\": \"https://example.com/resume.pdf\",\n  \"motivation\": \"I am excited to apply...\",\n  \"currentCTC\": \"100000\",\n  \"expectedCTC\": \"120000\",\n  \"currentCurrency\": \"USD\",\n  \"expectedCurrency\": \"USD\",\n  \"noticePeriod\": \"2 weeks\",\n  \"city\": \"New York\"\n}"
+            },
+            "url": "{{baseUrl}}/api/applications",
+            "description": "Candidate only. jobId and resumeUrl required."
+          }
+        },
+        {
+          "name": "Withdraw application",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"WITHDRAWN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/applications/{{applicationId}}",
+            "description": "Candidate, own application only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get my profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/profile",
+            "description": "Authenticated user profile."
+          }
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"phoneNumber\": \"+1234567890\",\n  \"country\": \"USA\",\n  \"state\": \"NY\",\n  \"city\": \"New York\",\n  \"linkedin\": \"https://linkedin.com/in/johndoe\",\n  \"github\": \"https://github.com/johndoe\",\n  \"currentCTC\": \"100000\",\n  \"expectedCTC\": \"120000\",\n  \"noticePeriod\": \"2 weeks\",\n  \"profileImageUrl\": \"https://example.com/avatar.jpg\",\n  \"resumeUrl\": \"https://example.com/resume.pdf\",\n  \"notificationNewApplications\": true,\n  \"notificationInterviewUpdates\": true,\n  \"notificationPlatformNews\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/profile",
+            "description": "Partial update supported."
+          }
+        },
+        {
+          "name": "Upload resume",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "PDF only, max 5MB"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/upload/resume",
+            "description": "Multipart form. Replaces previous resume. PDF only, max 5MB."
+          }
+        }
+      ]
+    }
+  ]
+}

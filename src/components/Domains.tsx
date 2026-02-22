@@ -74,6 +74,11 @@ const TABS = [
   { key: "qa", label: "QA Engineer" },
 ];
 
+function escapeAttr(s: string): string {
+  const map: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+  return String(s).replace(/[&<>"']/g, (c) => map[c] ?? c);
+}
+
 export function Domains() {
   const [active, setActive] = useState("aiml");
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -88,15 +93,20 @@ export function Domains() {
 
     wallRef.current.innerHTML = dom.wall
       .map(
-        (slug) =>
-          `<div class="logo" title="${slug}"><img src="${ICON(slug)}" alt="${slug}"></div>`
+        (slug) => {
+          const safe = escapeAttr(slug);
+          return `<div class="logo" title="${safe}"><img src="${escapeAttr(ICON(slug))}" alt="${safe}"></div>`;
+        }
       )
       .join("");
 
     gridRef.current.innerHTML = dom.tiles
       .map(
-        ([name, imgUrl]) =>
-          `<div class="dom-tile" tabindex="0" aria-label="${name}"><img src="${imgUrl}" alt="${name}"><div class="dom-label">${name} <small>tech</small></div></div>`
+        ([name, imgUrl]) => {
+          const safeName = escapeAttr(name);
+          const safeUrl = escapeAttr(imgUrl);
+          return `<div class="dom-tile" tabindex="0" aria-label="${safeName}"><img src="${safeUrl}" alt="${safeName}"><div class="dom-label">${safeName} <small>tech</small></div></div>`;
+        }
       )
       .join("");
 

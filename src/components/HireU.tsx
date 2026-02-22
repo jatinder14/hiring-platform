@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 const LETTERS = ["h", "i", "r", "e", "U"];
 
@@ -59,6 +59,12 @@ export function HireU() {
       clearLetters();
     }, 650);
   };
+
+  useEffect(() => {
+    return () => {
+      if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    };
+  }, []);
 
   return (
     <section className="hireu-stage" id="hireu">

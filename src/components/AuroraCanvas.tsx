@@ -45,7 +45,7 @@ export function AuroraCanvas() {
       }
       float fbm(vec2 p){
         float v=0.0, a=0.5;
-        for(int i=0;i<5;i++){
+        for(int i=0;i<4;i++){
           v += a*noise(p);
           p *= 2.0;
           a *= 0.5;
@@ -94,6 +94,10 @@ export function AuroraCanvas() {
     gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
     gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
     gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      const info = gl.getProgramInfoLog(prog);
+      throw new Error(`Program link failed: ${info ?? "unknown error"}`);
+    }
     gl.useProgram(prog);
 
     const buf = gl.createBuffer();
@@ -114,19 +118,22 @@ export function AuroraCanvas() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
 
+    let animationFrameId: number;
     const start = performance.now();
     function render() {
+      if (!canvas || !gl) return;
       gl.uniform1f(timeLoc!, (performance.now() - start) / 1000);
       gl.uniform2f(resLoc!, canvas.width, canvas.height);
       gl.uniform1f(scrollLoc!, scrollY);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      requestAnimationFrame(render);
+      animationFrameId = requestAnimationFrame(render);
     }
     render();
 
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
